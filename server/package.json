@@ -1,0 +1,23 @@
+{
+  "name": "radiateurs",
+  "version": "1.0.0",
+  "description": "A tool to monitor and command my electric heaters",
+  "main": "app.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://bitbucket.org/sraffray/radiateurs.git"
+  },
+  "author": "Sébastien Raffray",
+  "license": "ISC",
+  "homepage": "https://bitbucket.org/sraffray/radiateurs#readme",
+  "dependencies": {
+    "body-parser": "^1.15.0",
+    "cors": "^2.7.1",
+    "express": "^4.13.4",
+    "i2c-bus": "^1.0.2",
+    "sqlite3": "^3.1.3"
+  }
+}

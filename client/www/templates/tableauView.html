@@ -1,0 +1,30 @@
+<ion-view title="Tableau électrique" id="page4">
+<ion-content padding="true" class="has-header">
+<div class="card" ng-repeat="phase in phases">
+	<h1 class="item item-divider">
+		Phase {{ phase.number }}
+	</h1>
+	<div class="item item-text-wrap">
+		<ion-list>
+			<ion-item ng-repeat="heater in phase.heaters">
+				<div class="row">
+					<div class="col col-10 col-center">#{{heater.id}}</div>
+					<div class="col col-80">
+						<div class="row" style="font-weight: bold">{{heater.name}}</div>
+						<div class="row" style="font: caption"> étage {{heater.floor}}, {{heater.watts}}W</div>
+					</div>
+					<div class="button text-center col col-30 col-center" ng-class="{'button-assertive': heater.command == 0, 'button-energized': heater.command == 1, 'button-balanced': heater.command == 2, 'button-calm': heater.command == 3}">FP{{heater.wire}}</div>
+
+					<div class="row">
+						<ion-option-button class=" button-assertive icon ion-close-circled" ng-class="{ 'button-outline': heater.command != 0 }" ng-click="setCommand(heater, 0)"></ion-option-button>
+						<ion-option-button class=" button-energized icon ion-checkmark-circled" ng-class="{ 'button-outline': heater.command != 1 }" ng-click="setCommand(heater, 1)"></ion-option-button>
+						<ion-option-button class="button-balanced icon ion-leaf" ng-class="{ 'button-outline': heater.command != 2 }" ng-click="setCommand(heater, 2)"></ion-option-button>
+						<ion-option-button class="button-calm icon ion-ios-snowy" ng-class="{ 'button-outline': heater.command != 3 }" ng-click="setCommand(heater, 3)"></ion-option-button>
+        			</div>
+				</div>
+			</ion-item>
+		</ion-list>
+	</div>
+</div>
+</ion-content>
+</ion-view>

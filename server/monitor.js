@@ -1,0 +1,404 @@
+var i2cBus = require('i2c-bus').openSync(1);
+var readline = require('readline');
+var fs = require('fs');
+var sqlite3 = require('sqlite3');
+var db = new sqlite3.Database('radiateurs.db');
+
+var ARRET = 0;
+var MARCHE = 1;
+var ECO = 2;
+var HORSGEL = 3;
+
+var I2CController = function() {
+
+	var IODIRA = 0x00;	// Direction du port A (input/output)
+	var IODIRB = 0x01;	// Direction du port B (input/output)
+	var OLATA = 0x14;	// Valeurs du port A en mode output
+	var OLATB = 0x15;	// Valeurs du port B en mode output
+
+
+	// Adresse du module I2C sur lequel communiquer
+	// numModule : le numero 0, 1 ou 2
+	var getModuleAddress = function(module) {
+		if (module < 0b000 || module > 0b010)
+			return false;
+		// L'adresse du MCP23017 est construite sur 7 bits : 0 1 0 0 A2 A1 A0
+		// Le numero de module est egal à son adresse en binaire : A2 A1 A0
+		// Par exemple 0x20 pour 000, 0x21 pour 001, Ox22 pour 010, etc...
+		// Il suffit donc de faire un bitwise OR de 0 1 0 0 0 0 0 et de A2 A1 A0
+		// (Attention sur la carte pilote j'ai inversé, A0 est à gauche et A2 à droite
+		// quand les connecteurs I2C sont en haut sur le rail)
+		return (0b0100000 | module);
+	};
+
+	// Helper. Renvoie le registre IODIR correspondant à un fil pilote
+	// wire : numero de fil pilote entre 1 et 8
+	var getIodirRegister = function(wire) {
+		// Le registre IODIR determine le sens d'écriture des Ports GPIO (output ou input)
+		// Les fils pilotes 1 à 4 sont commandés par le port A
+		// et les fils pilotes 5 à 9 sont commandés par le port B
+		if (wire <= 4) {
+			return IODIRA;
+		}
+		return IODIRB;
+	};
+
+	// Helper. Renvoie le registre OLAT correspondant à un fil pilote
+	// wire : numero de fil pilote entre 1 et 8
+	var getOlatRegister = function(wire) {
+		// Le registre OLAT détermine la valeur à écrire sur le port GPIO qaund celui-ci est en mode output
+		// Les fils pilotes 1 à 4 sont commandés par le port A
+		// et les fils pilotes 5 à 9 sont commandés par le port B
+		if (wire <= 4) {
+			return OLATA;
+		}
+		return OLATB;
+	};
+
+	// Helper. Masque construit avec des 00 sur l'emplacement des bits significatifs
+	var getPinMask = function(wire) {
+		if (wire === 1 || wire === 5)
+			return 0b11111100;
+
+		else if (wire === 2 || wire === 6)
+			return 0b11110011;
+
+		else if (wire === 3 || wire === 7)
+			return 0b11001111;
+
+		else if (wire === 4 || wire === 8)
+			return 0b00111111;
+
+		return false; // erreur de numero de fil pilote
+	};
+
+	// Encrypte la commande GIFAM à transmettre
+	// command : 0 pour arret, 1 pour marche, 2 pour eco, 3 pour hors-gel
+	var getOrderMask = function(command) {
+		if (command === ARRET)   // ordre d'arret
+			return 0b01010101; // demi pos
+
+		else if (command === MARCHE) // ordre de marche
+			return 0b00000000; // ni pos, ni neg
+
+		else if (command === ECO) // ordre de eco
+			return 0b11111111; // signal complet
+
+		else if (command === HORSGEL) // ordre de hors-gel
+			return 0b10101010; // demi neg
+
+		return false;    // erreur de numero d'ordre
+	};
+
+	// Helper. Sert à calculer le nombre de bits qu'il faut déplacer vers la droite
+	// wire : numero de fil pilote entre 1 et 8
+	var getShiftPlaces = function(wire) {
+		if (wire === 1 || wire === 5)
+			return 0;
+
+		else if (wire === 2 || wire === 6)
+			return 2;
+
+		else if (wire === 3 || wire === 7)
+			return 4;
+
+		else if (wire === 4 || wire === 8)
+			return 6;
+
+		return false; // erreur de fil pilote
+	};
+
+	// Récupère l'état actuel d'un fil pilote 
+	// module : le numéro du module (0-2)
+	// wire : le numéro du fil pilote (1-8)
+	this.readState = function (module, wire) {
+		var device = getModuleAddress(module);
+		var iodir = getIodirRegister(wire);
+		var olat = getOlatRegister(wire);
+		var shift = getShiftPlaces(wire);
+
+		if (device === false || shift === false)
+			return false;
+
+		// Toutes les broches sont utilisées en output
+		i2cBus.writeByteSync(device, iodir, 0b00000000);
+
+		// Lit la valeur pre-existante sur le port
+		var state = i2cBus.readByteSync(device, olat); // Lit les 8 broches du registre de sortie
+		state = state >> shift; // ramene les 2 broches significatives sur les 2 positions les plus à droite
+		state = state & 0b00000011; // ne garde que ces 2 derniers bits
+
+		if (state === 0b00)			// ni pos ni neg = marche
+			return MARCHE;
+		else if (state === 0b01)	// demi pos = arret
+			return ARRET;
+		else if (state === 0b10)	// demi neg = hors gel
+			return HORSGEL;
+		else if (state === 0b11)	// signal complet = eco
+			return ECO;
+
+		return false;
+	};
+
+	// Change l'etat d'un fil pilote
+	// module : le numero de modile (0-2) correspondant aux cavaliers (000, 001, 010)
+	// wire : numero du fil pilote, compris entre 1 et 8
+	// command : ordre a transmettre, c'est a dire 0 pour arret, 1 pour marche, 2 pour eco, 3 pour hors-gel
+	this.writeState = function(module, wire, command) {
+		//	# Encrypte le module I2C sur lequel communiquer
+		var device = getModuleAddress(module);
+		var iodir = getIodirRegister(wire);
+		var olat = getOlatRegister(wire);
+		var mask = getPinMask(wire);
+		var order = getOrderMask(command);
+
+		if (device === false || mask === false || order === false)
+			return false;
+
+		// Toutes les broches sont utlisées en output
+		i2cBus.writeByteSync(device, iodir, 0b00000000);
+
+		// Ne garde que les 2 broches à modifier sur l'ordre
+		order = order & (~mask);
+
+		// Lit la valeur pre-existante sur le port
+		var current_state = i2cBus.readByteSync(device, olat); // lit les 8 broches du registre de sortie
+		current_state = current_state & mask; // efface les 2 broches à modifier
+
+		// Modifie la valeur de l'ordre sur les broches de sortie
+		order = current_state | order; // Modifie les 2 broches en y inscrivant l'ordre	
+		i2cBus.writeByteSync(device, olat, order); // ecrit les 8 broches du registre de sortie
+
+		return;
+	};
+};
+
+var Teleinfo = function () {
+	var totalCurrent = [0, 0, 0]; // intensite en Amperes
+	var nbrSwitchedOff = [0, 0, 0]; // nombre de radiateurs delestés
+	var meter =  {standard: 0, savings: 0}; // valeur du compteur
+	var power = 0; // puissance au compteur
+	//var heatersSettings = [];
+	var i2cController = new I2CController();
+
+	var nextSwitchOff = function(phase) {
+		return (8 - nbrSwitchedOff[phase - 1]);
+	};
+
+
+	var switchOneOff = function(phase) {
+		var wire = nextSwitchOff(phase);
+		if (wire > 0) {
+			i2cController.writeState(phase - 1, wire, ARRET);
+			++nbrSwitchedOff[phase - 1];
+			console.log('phase ' + phase + ': delestage du fil #' + wire);
+		}
+	};
+
+	var nextSwitchBack = function(phase) {
+		return (9 - nbrSwitchedOff[phase - 1]);
+	};
+
+	var switchOneBack = function(phase) {
+		var wire = nextSwitchBack(phase);
+		if (wire < 9) {
+			getCommandForHeater(phase, wire)
+			.then((command) => {
+				i2cController.writeState(phase - 1, wire, command);
+				--nbrSwitchedOff[phase - 1];
+				console.log('phase ' + phase + ': relestage du fil #' + wire);
+			})
+			.catch((err) => {
+				if (err === undefined) {
+					--nbrSwitchedOff[phase - 1];
+					console.log('phase ' + phase + ': relestage virtuel du fil #' + wire);
+				}
+			});
+		}
+	};
+
+	// Initialise les ordres GIFAM à partir de la base de données
+	var initHeatersFromDatabase = function() {
+		var p = new Promise(function(resolve, reject) {
+			db.all(
+				"SELECT * FROM dashboard",
+				[], 
+				function(err, rows) {
+					if (err) {
+						console.log('error init heaters');
+						reject(err);
+					}		
+					for (var i = 0; i < rows.length; ++i) {
+						var heater = rows[i];
+						var wire = heater.wire;
+						var phase = heater.phase;
+						var command = heater.command;
+						i2cController.writeState(phase - 1, wire, command);
+					}
+					resolve(rows);
+				}
+			);
+		});
+		return p;
+	};
+
+	var getCommandForHeater = function(phase, wire) {
+		var p = new Promise(function(resolve, reject) {
+			db.get(
+				"SELECT command FROM dashboard WHERE phase = ? AND wire = ?",
+				[phase, wire],
+				function (err, row) {
+					if (err) {
+						console.log('select error: ' + err);
+						reject(err);
+						return;
+					}
+					if (row === undefined) {
+						console.log('undefined row for phase ' + phase + ' and wire ' + wire);
+						reject(row);
+						return;
+					}
+					resolve(row.command);
+				}
+			);
+		});
+		return p;
+	};
+
+	this.getCommandForHeater = getCommandForHeater;
+
+	this.setCommandForHeater = function(command, id) {
+		var p = new Promise(function(resolve, reject) {
+			db.run(
+				"UPDATE dashboard SET command = ? WHERE id = ?",
+				[command, id],
+				function(err) {
+					if (err) {
+						console.log('update error: ' + err);
+						reject(err);
+						return;
+					}
+					initHeatersFromDatabase()
+					.then((rows) => {
+						resolve(rows);
+					});
+				}
+			);
+		});
+		return p;
+	};
+
+	this.setCommandForAllHeaters = function(command) {
+		var p = new Promise(function(resolve, reject) {
+			db.run(
+				"UPDATE dashboard SET command = ?", 
+				[command],
+				function(err) {
+					if (err) {
+						console.log('update all error: ' + err);
+						reject(err);
+						return;
+					}
+					initHeatersFromDatabase()
+					.then((rows) => {
+						resolve(rows);
+					});
+				}
+			);
+		});	
+		return p;
+	};
+
+	this.getPhaseStatus = function() {
+		var phases = [];
+		for (var phase = 0; phase < 3; ++phase) {
+			phases[phase] = {
+				number: phase + 1,
+				current: totalCurrent[phase],
+				switchedOff: nbrSwitchedOff[phase]
+			};
+		}
+		return Promise.resolve(phases);
+	};
+
+	this.getHeaters = function() {
+		var p = new Promise(function(resolve, reject) {
+			db.all(
+				"SELECT * FROM dashboard",
+				[],
+				function (err, rows) {
+					if (err) {
+						reject(err);
+						return;
+					}
+					resolve(rows);
+				}
+			);
+		});
+		return p;
+	};
+
+	initHeatersFromDatabase();
+
+	var lineReader = readline.createInterface({
+		input: fs.createReadStream('/dev/ttyAMA0', {autoClose: false}),
+		terminal: true,
+	});
+
+	lineReader.on('close', function() {
+		console.log(' ********** LINE READER CLOSED');
+	});
+
+	lineReader.on('line', function(line) {
+		var message = '';
+
+		message = line.search('IINST');
+		if (message !== -1) {
+			var phase = line.substr(5, 1);
+			var amperes = line.substr(7, 3);
+			totalCurrent[phase - 1] = amperes;
+			console.log('phase ' + phase + ' : ' + amperes); 
+			if (amperes >= 30) 
+				switchOneOff(phase);
+			else
+				switchOneBack(phase);
+			return;
+		}
+
+		message = line.search('ADIR');
+		if (message !== -1) {
+			var phase_dep = line.substr(4, 1);
+			var amper_dep = line.substr(6, 3);
+			console.log('depassement phase ' + phase_dep + ' : ' + amper_dep);
+			switchOneOff(phase_dep);
+		}
+
+		message = line.search('HCHP');
+		if (message !== -1) {
+			var hp = line.substr(5, 10);
+			meter.standard = hp; 
+			console.log('hp : ' + hp);
+			return;
+		}
+
+		message = line.search('HCHC');
+		if (message !== -1) {
+			var hc = line.substr(5, 10);
+			meter.savings = hc;
+			console.log('hc : ' + hc);
+			return;
+		}
+
+		message = line.search('PAPP');
+		if (message !== -1) {
+			var watts = line.substr(5, 5);
+			power = watts;
+			console.log('puiss : ' + watts);
+			return;
+		}
+	});
+};
+
+var teleinfo = new Teleinfo();
+
+module.exports = teleinfo;
