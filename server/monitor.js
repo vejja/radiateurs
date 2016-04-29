@@ -2,14 +2,26 @@ var i2cBus = require('i2c-bus').openSync(1);
 var readline = require('readline');
 var fs = require('fs');
 var sqlite3 = require('sqlite3');
-var db = new sqlite3.Database('radiateurs.db');
+var db = new sqlite3.Database('/home/pi/radiateurs/server/radiateurs.db');
+var events = require('events');
+
 
 var ARRET = 0;
 var MARCHE = 1;
 var ECO = 2;
 var HORSGEL = 3;
 
-var I2CController = function() {
+function logMessage(message) {
+	//var logDate = new Date();
+	//console.log('LOG [' + logDate.toString() + '] ' + message);
+}
+
+function logError(message) {
+	var logDate = new Date();
+	console.log('ERR [' + logDate.toString() + '] ' + message);
+}
+
+function I2CController() {
 
 	var IODIRA = 0x00;	// Direction du port A (input/output)
 	var IODIRB = 0x01;	// Direction du port B (input/output)
@@ -171,47 +183,72 @@ var I2CController = function() {
 
 		return;
 	};
-};
+}
 
-var Teleinfo = function () {
-	var totalCurrent = [0, 0, 0]; // intensite en Amperes
-	var nbrSwitchedOff = [0, 0, 0]; // nombre de radiateurs delestés
-	var meter =  {standard: 0, savings: 0}; // valeur du compteur
-	var power = 0; // puissance au compteur
-	//var heatersSettings = [];
-	var i2cController = new I2CController();
+function Teleinfo() {
+	events.EventEmitter.call(this); 	// call parent class constructor
 
-	var nextSwitchOff = function(phase) {
-		return (8 - nbrSwitchedOff[phase - 1]);
-	};
+	this.nbrSwitchedOff = [0, 0, 0]; 	// nombre de radiateurs delestés
+	this.i2cController = new I2CController();
+	var self = this;
 
+	function nextSwitchOff(phase) {
+		return (8 - self.nbrSwitchedOff[phase - 1]);
+	}
 
 	var switchOneOff = function(phase) {
 		var wire = nextSwitchOff(phase);
 		if (wire > 0) {
-			i2cController.writeState(phase - 1, wire, ARRET);
-			++nbrSwitchedOff[phase - 1];
-			console.log('phase ' + phase + ': delestage du fil #' + wire);
+			self.i2cController.writeState(phase - 1, wire, ARRET);
+			++self.nbrSwitchedOff[phase - 1];
+			logMessage('phase ' + phase + ': delestage du fil #' + wire);
+			var data = {
+				phase: phase,
+				value: self.nbrSwitchedOff[phase - 1]
+			};
+			var emitMessage = {
+				type: 'switch',
+				data: data
+			};
+			self.emit('notification', emitMessage);
 		}
 	};
 
-	var nextSwitchBack = function(phase) {
-		return (9 - nbrSwitchedOff[phase - 1]);
-	};
+	function nextSwitchBack(phase) {
+		return (9 - self.nbrSwitchedOff[phase - 1]);
+	}
 
-	var switchOneBack = function(phase) {
+	var switchOneBack = (phase) => {
 		var wire = nextSwitchBack(phase);
 		if (wire < 9) {
-			getCommandForHeater(phase, wire)
+			self.getCommandForHeater(phase, wire)
 			.then((command) => {
-				i2cController.writeState(phase - 1, wire, command);
-				--nbrSwitchedOff[phase - 1];
-				console.log('phase ' + phase + ': relestage du fil #' + wire);
+				self.i2cController.writeState(phase - 1, wire, command);
+				--self.nbrSwitchedOff[phase - 1];
+				logMessage('phase ' + phase + ': relestage du fil #' + wire);
+				var data = {
+					phase: phase,
+					value: self.nbrSwitchedOff[phase - 1]
+				};
+				var emitMessage = {
+					type: 'switch',
+					data: data
+				};
+				self.emit('notification', emitMessage);
 			})
 			.catch((err) => {
 				if (err === undefined) {
-					--nbrSwitchedOff[phase - 1];
-					console.log('phase ' + phase + ': relestage virtuel du fil #' + wire);
+					--self.nbrSwitchedOff[phase - 1];
+					logMessage('phase ' + phase + ': relestage virtuel du fil #' + wire);
+					var data = {
+						phase: phase,
+						value: self.nbrSwitchedOff[phase - 1]
+					};
+					var emitMessage = {
+						type: 'switch',
+						data: data
+					};
+					self.emit('notification', emitMessage);
 				}
 			});
 		}
@@ -219,27 +256,23 @@ var Teleinfo = function () {
 
 	// Initialise les ordres GIFAM à partir de la base de données
 	var initHeatersFromDatabase = function() {
-		var p = new Promise(function(resolve, reject) {
-			db.all(
-				"SELECT * FROM dashboard",
-				[], 
-				function(err, rows) {
-					if (err) {
-						console.log('error init heaters');
-						reject(err);
-					}		
-					for (var i = 0; i < rows.length; ++i) {
-						var heater = rows[i];
-						var wire = heater.wire;
-						var phase = heater.phase;
-						var command = heater.command;
-						i2cController.writeState(phase - 1, wire, command);
-					}
-					resolve(rows);
+		db.all(
+			"SELECT * FROM dashboard",
+			[], 
+			(err, rows) => {
+				if (err) {
+					logError('initHeatersFromDatabase : SELECT query failed; ' + err);
+					return;
+				}		
+				for (var i = 0; i < rows.length; ++i) {
+					var heater = rows[i];
+					var wire = heater.wire;
+					var phase = heater.phase;
+					var command = heater.command;
+					self.i2cController.writeState(phase - 1, wire, command);
 				}
-			);
-		});
-		return p;
+			}
+		);
 	};
 
 	var getCommandForHeater = function(phase, wire) {
@@ -247,14 +280,14 @@ var Teleinfo = function () {
 			db.get(
 				"SELECT command FROM dashboard WHERE phase = ? AND wire = ?",
 				[phase, wire],
-				function (err, row) {
+				(err, row) => {
 					if (err) {
-						console.log('select error: ' + err);
+						logError('getCommandForHeater : SELECT query failed; ' + err);
 						reject(err);
 						return;
 					}
 					if (row === undefined) {
-						console.log('undefined row for phase ' + phase + ' and wire ' + wire);
+						logMessage('undefined row for phase ' + phase + ' and wire ' + wire);
 						reject(row);
 						return;
 					}
@@ -268,137 +301,185 @@ var Teleinfo = function () {
 	this.getCommandForHeater = getCommandForHeater;
 
 	this.setCommandForHeater = function(command, id) {
-		var p = new Promise(function(resolve, reject) {
-			db.run(
-				"UPDATE dashboard SET command = ? WHERE id = ?",
-				[command, id],
-				function(err) {
-					if (err) {
-						console.log('update error: ' + err);
-						reject(err);
-						return;
-					}
-					initHeatersFromDatabase()
-					.then((rows) => {
-						resolve(rows);
+		if (command < 0 || command > 3) {
+			logError('setCommandForHeater: wrong command');
+			return;
+		}
+		db.run(
+			"UPDATE dashboard SET command = ? WHERE id = ?",
+			[command, id],
+			(err) => {
+				if (!err) {
+					initHeatersFromDatabase();
+					self.getHeaters()
+					.then(function(reply) {
+						self.emit('notification', reply);
+					})
+					.catch(function(err) {
+						logError('getHeaters promise rejected: ' + err);
 					});
 				}
-			);
-		});
-		return p;
+				else {
+					logError('setCommandForHeater : UPDATE query failed');
+				}
+			}
+		);
 	};
 
 	this.setCommandForAllHeaters = function(command) {
-		var p = new Promise(function(resolve, reject) {
-			db.run(
-				"UPDATE dashboard SET command = ?", 
-				[command],
-				function(err) {
-					if (err) {
-						console.log('update all error: ' + err);
-						reject(err);
-						return;
-					}
-					initHeatersFromDatabase()
-					.then((rows) => {
-						resolve(rows);
+		if (command < 0 || command > 3) {
+			logError('setCommandForAllHeaters: wrong command');
+			return;
+		}
+		db.run(
+			"UPDATE dashboard SET command = ?", 
+			[command],
+			(err) => {
+				if (!err) {
+					initHeatersFromDatabase();
+					self.getHeaters()
+					.then(function(reply) {
+						self.emit('notification', reply);
+					})
+					.catch(function(err) {
+						logError('getHeaters promise rejected: ' + err);
 					});
 				}
-			);
-		});	
-		return p;
+				else {
+					logError('setCommandForAllHeaters : UPDATE query failed');
+				}
+			}
+		);
 	};
 
-	this.getPhaseStatus = function() {
-		var phases = [];
-		for (var phase = 0; phase < 3; ++phase) {
-			phases[phase] = {
-				number: phase + 1,
-				current: totalCurrent[phase],
-				switchedOff: nbrSwitchedOff[phase]
-			};
-		}
-		return Promise.resolve(phases);
-	};
 
 	this.getHeaters = function() {
 		var p = new Promise(function(resolve, reject) {
 			db.all(
 				"SELECT * FROM dashboard",
 				[],
-				function (err, rows) {
-					if (err) {
-						reject(err);
-						return;
+				(err, rows) => {
+					if (!err) {
+						var reply = {
+							type: 'heaters',
+							data: rows
+						};
+						resolve(reply);
 					}
-					resolve(rows);
+					else {
+						logError('getHeaters : SELECT query failed');
+						reject(err);
+					}
 				}
 			);
 		});
 		return p;
 	};
 
+
+	var infiniteReading = function() {
+		var lineReader;
+
+		lineReader = readline.createInterface({
+			input: fs.createReadStream('/dev/ttyAMA0', {autoClose: false}),
+		});
+
+		lineReader.on('close', function() {
+			logMessage('********** LINE READER CLOSED');
+			infiniteReading();
+		});
+
+		lineReader.on('line', function(line) {
+			var rcvdMessage = '';
+			var emitMessage = {};
+
+			rcvdMessage = line.search('IINST');
+			if (rcvdMessage !== -1) {
+				var phase = parseInt(line.substr(5, 1));
+				var amperes = parseInt(line.substr(7, 3));
+				logMessage('IINST phase ' + phase + ' : ' + amperes);
+				emitMessage.type = 'current';
+				emitMessage.data = {
+					phase: phase,
+					value: amperes
+				};
+				self.emit('notification', emitMessage); 
+				
+				if (amperes >= 30) {
+					switchOneOff(phase);
+				}
+				else {
+					switchOneBack(phase);
+				}
+				return;
+			}
+
+			rcvdMessage = line.search('ADIR');
+			if (rcvdMessage !== -1) {
+				var phase_dep = parseInt(line.substr(4, 1));
+				var amper_dep = parseInt(line.substr(6, 3));
+				emitMessage.type = 'current';
+				emitMessage.data = {
+					phase: phase_dep,
+					value: amper_dep
+				};
+				self.emit('notification', emitMessage); 
+				logMessage('ADIR phase ' + phase_dep + ' : ' + amper_dep);
+				switchOneOff(phase_dep);
+				return;
+			}
+
+			rcvdMessage = line.search('HCHP');
+			if (rcvdMessage !== -1) {
+				var hp = parseInt(line.substr(5, 10));
+				emitMessage.type = 'meter';
+				emitMessage.data = {
+					period: 'standard',
+					value: hp
+				};
+				self.emit('notification', emitMessage); 
+				logMessage('hp : ' + hp);
+				return;
+			}
+
+			rcvdMessage = line.search('HCHC');
+			if (rcvdMessage !== -1) {
+				var hc = parseInt(line.substr(5, 10));
+				emitMessage.type = 'meter';
+				emitMessage.data = {
+					period: 'savings',
+					value: hc
+				};
+				self.emit('notification', emitMessage); 
+				logMessage('hc : ' + hc);
+				return;
+			}
+
+			rcvdMessage = line.search('PAPP');
+			if (rcvdMessage !== -1) {
+				var watts = parseInt(line.substr(5, 5));
+				var timestamp = Date.now() / 1000;
+				emitMessage.type = 'power';
+				emitMessage.data = {
+					time: timestamp,
+					value: watts
+				};
+				self.emit('notification', emitMessage); 
+				return;
+			}
+		});
+	};
+
 	initHeatersFromDatabase();
+	infiniteReading();
 
-	var lineReader = readline.createInterface({
-		input: fs.createReadStream('/dev/ttyAMA0', {autoClose: false}),
-		terminal: true,
-	});
+}
 
-	lineReader.on('close', function() {
-		console.log(' ********** LINE READER CLOSED');
-	});
+// subclass Teleinfo extends superclass EventEmitter
+Teleinfo.prototype = Object.create(events.EventEmitter.prototype);
+Teleinfo.prototype.constructor = Teleinfo;
 
-	lineReader.on('line', function(line) {
-		var message = '';
-
-		message = line.search('IINST');
-		if (message !== -1) {
-			var phase = line.substr(5, 1);
-			var amperes = line.substr(7, 3);
-			totalCurrent[phase - 1] = amperes;
-			console.log('phase ' + phase + ' : ' + amperes); 
-			if (amperes >= 30) 
-				switchOneOff(phase);
-			else
-				switchOneBack(phase);
-			return;
-		}
-
-		message = line.search('ADIR');
-		if (message !== -1) {
-			var phase_dep = line.substr(4, 1);
-			var amper_dep = line.substr(6, 3);
-			console.log('depassement phase ' + phase_dep + ' : ' + amper_dep);
-			switchOneOff(phase_dep);
-		}
-
-		message = line.search('HCHP');
-		if (message !== -1) {
-			var hp = line.substr(5, 10);
-			meter.standard = hp; 
-			console.log('hp : ' + hp);
-			return;
-		}
-
-		message = line.search('HCHC');
-		if (message !== -1) {
-			var hc = line.substr(5, 10);
-			meter.savings = hc;
-			console.log('hc : ' + hc);
-			return;
-		}
-
-		message = line.search('PAPP');
-		if (message !== -1) {
-			var watts = line.substr(5, 5);
-			power = watts;
-			console.log('puiss : ' + watts);
-			return;
-		}
-	});
-};
-
+// exports a single instance
 var teleinfo = new Teleinfo();
 
 module.exports = teleinfo;

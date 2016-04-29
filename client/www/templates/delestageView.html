@@ -1,20 +1,22 @@
 <ion-view title="Delestage" id="page2">
-<ion-content padding="true" class="has-header">
-<div class="row">
-	<div class="col" ng-repeat="phase in phases">
-		<div class="card">
+	<ion-content padding="true" class="has-header">
+
+		<div class="card" ng-repeat="phase in system.phases">
 			<div class="item item-divider">
 				Phase {{ phase.number }}
+				<!--progress max="30" value="{{ phase.current }}"></progress-->
+				<span class="badge badge-positive">{{ phase.current }} A</span>
 			</div>
-			<div class="item">
-				<div justgage value="{{ phase.switchedOff }}" min="0" max="8" title="radiateurs délestés" title-position="above" noGradient="false" refreshAnimationType="linear"></div>
+			<div class="item row">
+				<div class="col col-50">
+					<div justgage value="{{ phase.current }}" min="0" max="40" title="ampères" title-position="above" noGradient="false" refreshAnimationType="linear"></div>
+				</div>
+				<div class="col col-50">
+					<div justgage value="{{ phase.switchedOff }}" min="0" max="8" title="radiateurs délestés" title-position="above" noGradient="false" refreshAnimationType="linear"></div>
+				</div>
 			</div>
-			<div class="item item-divider">
-				<progress max="30" value="{{ phase.current }}"></progress>
-				<div id="progressbarlabel">{{ phase.current }}A</div>
-			</div>
+
 		</div>
-	</div>
-</div>
-</ion-content>
+
+	</ion-content>
 </ion-view>

@@ -25,10 +25,6 @@ angular.module('app.routes', [])
 
         }
       },
-      cache: false,
-      onExit: function($rootScope) {
-            $rootScope.$broadcast('leavingDelestage');
-          }
     })
 
     .state('tabsController.consommationTab', {

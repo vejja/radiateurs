@@ -5,6 +5,9 @@
     <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width">
     <title></title>
 
+    <link rel="stylesheet" href="lib/ng-epoch/www/lib/epoch/epoch.min.css" />
+    <script src="lib/jquery/dist/jquery.min.js"></script>
+
     <link href="lib/ionic/css/ionic.css" rel="stylesheet">
     <script src="lib/ionic/js/ionic.bundle.js"></script>
 
@@ -16,6 +19,10 @@
     -->
 
     <!--Charting Libs-->
+    <script src="lib/d3/d3.min.js"></script>
+    <script src="lib/ng-epoch/www/lib/epoch/epoch.min.js"></script>
+    <script src="lib/ng-epoch/ng-epoch.js"></script>
+
     <script src="lib/raphael/raphael.js"></script>
     <script src="lib/justgage-bower/justgage.js"></script>
     <script src="lib/angular-gage/dist/angular-gage.js"></script>
@@ -46,18 +53,25 @@
   </head>
   <body ng-app="app" animation="slide-left-right-ios7">
   <div> 
-    <ion-side-menus enable-menu-with-back-views="false" data-componentid="side-menu21">
+    <ion-side-menus enable-menu-with-back-views="false" data-componentid="side-menu21" ng-controller="sideCtrl">
         <ion-side-menu-content>
             <ion-nav-bar class="bar-stable">
                 <ion-nav-back-button></ion-nav-back-button>
                 <ion-nav-buttons side="left">
                     <button class="button button-icon button-clear ion-navicon" menu-toggle="left"></button>
                 </ion-nav-buttons>
+                <ion-nav-buttons side="right">
+                    <ion-spinner ng-if="system.connection.status == 'off'" icon="lines" class="spinner-dark" ng-click="openPopover($event)"></ion-spinner>
+                    <a class="item-icon-right dark" ng-if="system.connection.status == 'on'">
+                        <i class="icon" ng-class="{'ion-connection-bars' : system.connection.type == 'wan', 'ion-wifi' : system.connection.type == 'lan'}" ng-click="openPopover($event)"></i>
+
+                    </a>
+                </ion-nav-buttons>
             </ion-nav-bar>
             <ion-nav-view></ion-nav-view>
         </ion-side-menu-content>
 
-        <ion-side-menu side="left" id="side-menu21" style="background-color:Default;" ng-controller="sideCtrl">
+        <ion-side-menu side="left" id="side-menu21" style="background-color:Default;">
             <ion-header-bar class="bar-stable">
                 <div class="title">Menu rapide</div>
             </ion-header-bar>
@@ -68,32 +82,14 @@
                     Commande générale
                 </div>
                 <ion-list data-componentid="list2">
-                    <ion-toggle toggle-class="toggle-assertive" data-componentid="toggle1" ng-checked="uniformCommand.value == 0" ng-click="setCommand(0)">Arrêt</ion-toggle>
-                    <ion-toggle toggle-class="toggle-energized" data-componentid="toggle2" ng-checked="uniformCommand.value == 1" ng-click="setCommand(1)">Marche</ion-toggle>
-                    <ion-toggle toggle-class="toggle-balanced" data-componentid="toggle3" ng-checked="uniformCommand.value == 2" ng-click="setCommand(2)">Eco</ion-toggle>
-                    <ion-toggle toggle-class="toggle-calm" data-componentid="toggle4" ng-checked="uniformCommand.value == 3" ng-click="setCommand(3)">Hors-Gel</ion-toggle>
+                    <ion-toggle toggle-class="toggle-assertive" data-componentid="toggle1" ng-checked="system.uniformCommand == 0" ng-click="setCommand(0)">Arrêt</ion-toggle>
+                    <ion-toggle toggle-class="toggle-energized" data-componentid="toggle2" ng-checked="system.uniformCommand == 1" ng-click="setCommand(1)">Marche</ion-toggle>
+                    <ion-toggle toggle-class="toggle-balanced" data-componentid="toggle3" ng-checked="system.uniformCommand == 2" ng-click="setCommand(2)">Eco</ion-toggle>
+                    <ion-toggle toggle-class="toggle-calm" data-componentid="toggle4" ng-checked="system.uniformCommand == 3" ng-click="setCommand(3)">Hors-Gel</ion-toggle>
                 </ion-list>
             </div>
 
-            <div class="card">
-                <div class="item item-divider">
-                    Type de connection
-                </div>
-                <ion-list>
-                    <ion-radio ng-model="connectionType.value" ng-value="'wan'">
-                        <a class="item-icon-left dark">
-                            <i class="icon ion-connection-bars"></i>
-                            WAN
-                        </a>
-                    </ion-radio>
-                    <ion-radio ng-model="connectionType.value" ng-value="'lan'">
-                        <a class="item-icon-left dark">
-                            <i class="icon ion-wifi"></i>
-                            LAN
-                        </a>
-                    </ion-radio>
-                </ion-list>
-            </div>
+            
                 <!--div class="button-bar" data-componentid="button-bar1">
                     <a href="mailto:" id="settings-button1" style="font-size:-5px;" class="button button-assertive  button-block icon ion-power" data-componentid="button1"></a>
                     <button id="settings-button2" class="button button-energized  button-block icon ion-flame" data-componentid="button2"></button>

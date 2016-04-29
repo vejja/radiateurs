@@ -1,0 +1,25 @@
+
+<ion-popover-view>
+
+	<ion-header-bar class="bar-stable">
+		<h1 class="title">Type de connection</h1>
+	</ion-header-bar>
+
+	<ion-content>
+        <ion-list>
+            <ion-radio ng-model="system.connection.type" value='wan' ng-change="setConnectionType('wan')" >
+                <a class="item-icon-left dark">
+                    <i class="icon ion-connection-bars"></i>
+                    WAN
+                </a>
+            </ion-radio>
+            <ion-radio ng-model="system.connection.type" value='lan' ng-change="setConnectionType('lan')">
+                <a class="item-icon-left dark">
+                    <i class="icon ion-wifi"></i>
+                    LAN
+                </a>
+            </ion-radio>
+        </ion-list>
+	</ion-content>
+
+</ion-popover-view>

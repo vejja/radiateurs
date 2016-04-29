@@ -1,60 +1,26 @@
 angular.module('app.controllers', [])
 
-.controller('sideCtrl', function($scope, Heaters, Connection) {
-	$scope.connectionType = Connection.type;
-	$scope.uniformCommand = Heaters.uniformCommand;
-	Heaters.getAllHeaters();
+.controller('sideCtrl', function($scope, System, $ionicPopover) {
+	$scope.system = System;
+	System.loadAllHeaters();
+
 	$scope.setCommand = function(command) {
-		Heaters.setCommandForAllHeaters(command);
+		System.setCommandForAllHeaters(command);
+	};
+	$scope.setConnectionType = function(type) {
+		System.setConnectionType(type);
+		$scope.closePopover();
 	};
 
-})
-  
-.controller('delestageCtrl', function($scope, $http, $interval, Connection, $rootScope) {
-	var interval = $interval(
-		function() {
-			$http.get(Connection.baseUrl() + 'phasestatus')
-			.then(
-				function(response) {
-					// en cas de success
-					// response.data est un tableau avec les informations de delestage par phase
-					$scope.phases = response.data;
-				},
-				function(response) {
-					// en cas d'erreur
-					console.log('erreur ' + response.statusText);
-				}
-			);
-		},
-		1000
-	);
-
-	$rootScope.$on('leavingDelestage', function() {
-		$interval.cancel(interval);
-	});
-})
-   
-.controller('consommationCtrl', function($scope) {
-
-})
-   
-.controller('tableauCtrl', function($scope, Heaters) {
-	$scope.phases = Heaters.heatersByPhase;
-	Heaters.getAllHeaters();
-	$scope.setCommand = function(heater, command) {
-		var heaterId = heater.id;
-		Heaters.setCommandForHeater(heaterId, command);
-	};
-/*
-	$ionicPopover.fromTemplateUrl('templates/popover.html', {
-    	scope: $scope
-    }).then(function(popover) {
+	// .fromTemplateUrl() method
+	$ionicPopover.fromTemplateUrl('templates/networkPopover.html', {
+		scope: $scope
+	}).then(function(popover) {
 		$scope.popover = popover;
 	});
 
-	$scope.openPopover = function($event, heater) {
+	$scope.openPopover = function($event) {
 		$scope.popover.show($event);
-		$scope.selectedHeater = heater;
 	};
 	$scope.closePopover = function() {
 		$scope.popover.hide();
@@ -69,8 +35,27 @@ angular.module('app.controllers', [])
 	});
 	// Execute action on remove popover
 	$scope.$on('popover.removed', function() {
-	// Execute action
+		// Execute action
 	});
-*/
+})
+  
+.controller('delestageCtrl', function($scope, System) {
+	$scope.system = System;
+})
+   
+.controller('consommationCtrl', function($scope, System) {
+	$scope.system = System;
+	$scope.chartData = [
+		{label: 'power', values:[{}]}
+	];
+})
+   
+.controller('tableauCtrl', function($scope, System) {
+	$scope.system = System;
+	System.loadAllHeaters();
+	$scope.setCommand = function(heater, command) {
+		var heaterId = heater.id;
+		System.setCommandForOneHeater(heaterId, command);
+	};
 });
        

@@ -1,3 +1,29 @@
 <ion-view title="Consommation" id="page3">
-    <ion-content padding="true" class="has-header"></ion-content>
+    <ion-content padding="true" class="has-header">
+    	<div class="list card">
+    	
+    		<a class="item item-icon-left">
+			    <i class="icon ion-ios-sunny energized"></i>
+				Heures pleines
+				<span class="badge badge-energized">{{system.meter.standard}}</span>
+			</a>
+
+			<a class="item item-icon-left">
+			    <i class="icon ion-ios-moon royal"></i>
+				Heures creuses
+				<span class="badge badge-royal">{{system.meter.savings}}</span>
+			</a>
+
+			<a class="item item-divider item-icon-left assertive">
+			    <i class="icon ion-speedometer assertive"></i>
+				Puissance
+				<span class="badge badge-assertive">{{system.power}}</span>
+			</a>
+
+			<div class="item item-body">
+			    <epoch-live-line chart-height="200" chart-data="chartData" chart-stream="system.powerStream" chart-axes="['left', 'bottom', 'right']" chart-queue-size="1"></epoch-live-line>
+			</div>
+
+    	</div>
+    </ion-content>
 </ion-view>
