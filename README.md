@@ -47,7 +47,7 @@ Check that `letsencrypt`is executable from the command line
 
 If not: `sudo ln -s ~/.local/share/letsencrypt/bin/letsencrypt /usr/local/bin/letsencrypt`
 
-### Download node.js ARM binaries from nodejs.org
+### Download node.js ARMv6 binaries from nodejs.org
 ```
 npm install -g bower
 npm install -g forever
@@ -77,13 +77,17 @@ cd radiateurs/server/scripts
 Then `sudo crontab -e` and add the line `30 3 * * * /home/pi/radiateurs/server/scripts/renew-certificate.sh >> /var/log/letsencrypt/cronjob.log`
 
 ### Check ttyAMA0 and i2c
+
 `sudo nano /boot/cmdline.txt`
+
 * Supprimer console=ttyAMA0,115200 kgdboc=ttyAMA0,115200
 
 `sudo nano /etc/modules`
+
 * i2c-bcm2708 
 * i2c-dev
 
 `sudo nano /boot/config.txt`
+
 * dtparam=i2c=on
 * dtparam=i2c_arm=on
