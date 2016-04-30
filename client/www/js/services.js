@@ -21,7 +21,8 @@ angular.module('app.services', [])
 	system.connection = Connection;
 
 	var websocket = {};
-
+	var protocol = "UNTOKENGENEREAUHASARDPOURACCEDERAUSERVEURWEBSOCKET";
+	
 	function updateSystem() {
 		if (!$rootScope.$$phase) {
 			$rootScope.$digest();
@@ -29,8 +30,9 @@ angular.module('app.services', [])
 	}
 
 	function createWebSocket() {
+
 		var url = Connection.baseUrl();
-		websocket = new WebSocket(url);
+		websocket = new WebSocket(url, protocol);
 
 		websocket.onopen = function(event) {
 			console.log('websocket open event', event);
@@ -246,7 +248,7 @@ angular.module('app.services', [])
 	connection.baseUrl = function() {
 		if (connection.type == 'lan')
 			return 'ws://192.168.1.6:3000/';
-		return 'ws://erquy.vejja.fr:8080/api';
+		return 'wss://erquy.vejja.fr:443/api';
 	};
 
 	return connection;

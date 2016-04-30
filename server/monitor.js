@@ -4,6 +4,7 @@ var fs = require('fs');
 var sqlite3 = require('sqlite3');
 var db = new sqlite3.Database('/home/pi/radiateurs/server/radiateurs.db');
 var events = require('events');
+var log = require('./logger');
 
 
 var ARRET = 0;
@@ -11,15 +12,6 @@ var MARCHE = 1;
 var ECO = 2;
 var HORSGEL = 3;
 
-function logMessage(message) {
-	//var logDate = new Date();
-	//console.log('LOG [' + logDate.toString() + '] ' + message);
-}
-
-function logError(message) {
-	var logDate = new Date();
-	console.log('ERR [' + logDate.toString() + '] ' + message);
-}
 
 function I2CController() {
 
@@ -201,7 +193,7 @@ function Teleinfo() {
 		if (wire > 0) {
 			self.i2cController.writeState(phase - 1, wire, ARRET);
 			++self.nbrSwitchedOff[phase - 1];
-			logMessage('phase ' + phase + ': delestage du fil #' + wire);
+			log.debug('phase ' + phase + ': delestage du fil #' + wire);
 			var data = {
 				phase: phase,
 				value: self.nbrSwitchedOff[phase - 1]
@@ -225,7 +217,7 @@ function Teleinfo() {
 			.then((command) => {
 				self.i2cController.writeState(phase - 1, wire, command);
 				--self.nbrSwitchedOff[phase - 1];
-				logMessage('phase ' + phase + ': relestage du fil #' + wire);
+				log.debug('phase ' + phase + ': relestage du fil #' + wire);
 				var data = {
 					phase: phase,
 					value: self.nbrSwitchedOff[phase - 1]
@@ -239,7 +231,7 @@ function Teleinfo() {
 			.catch((err) => {
 				if (err === undefined) {
 					--self.nbrSwitchedOff[phase - 1];
-					logMessage('phase ' + phase + ': relestage virtuel du fil #' + wire);
+					log.debug('phase ' + phase + ': relestage virtuel du fil #' + wire);
 					var data = {
 						phase: phase,
 						value: self.nbrSwitchedOff[phase - 1]
@@ -261,7 +253,7 @@ function Teleinfo() {
 			[], 
 			(err, rows) => {
 				if (err) {
-					logError('initHeatersFromDatabase : SELECT query failed; ' + err);
+					log.error('initHeatersFromDatabase : SELECT query failed; ' + err);
 					return;
 				}		
 				for (var i = 0; i < rows.length; ++i) {
@@ -282,12 +274,12 @@ function Teleinfo() {
 				[phase, wire],
 				(err, row) => {
 					if (err) {
-						logError('getCommandForHeater : SELECT query failed; ' + err);
+						log.error('getCommandForHeater : SELECT query failed; ' + err);
 						reject(err);
 						return;
 					}
 					if (row === undefined) {
-						logMessage('undefined row for phase ' + phase + ' and wire ' + wire);
+						log.debug('undefined row for phase ' + phase + ' and wire ' + wire);
 						reject(row);
 						return;
 					}
@@ -302,7 +294,7 @@ function Teleinfo() {
 
 	this.setCommandForHeater = function(command, id) {
 		if (command < 0 || command > 3) {
-			logError('setCommandForHeater: wrong command');
+			log.error('setCommandForHeater: wrong command');
 			return;
 		}
 		db.run(
@@ -316,11 +308,11 @@ function Teleinfo() {
 						self.emit('notification', reply);
 					})
 					.catch(function(err) {
-						logError('getHeaters promise rejected: ' + err);
+						log.error('getHeaters promise rejected: ' + err);
 					});
 				}
 				else {
-					logError('setCommandForHeater : UPDATE query failed');
+					log.error('setCommandForHeater : UPDATE query failed');
 				}
 			}
 		);
@@ -328,7 +320,7 @@ function Teleinfo() {
 
 	this.setCommandForAllHeaters = function(command) {
 		if (command < 0 || command > 3) {
-			logError('setCommandForAllHeaters: wrong command');
+			log.error('setCommandForAllHeaters: wrong command');
 			return;
 		}
 		db.run(
@@ -342,11 +334,11 @@ function Teleinfo() {
 						self.emit('notification', reply);
 					})
 					.catch(function(err) {
-						logError('getHeaters promise rejected: ' + err);
+						log.error('getHeaters promise rejected: ' + err);
 					});
 				}
 				else {
-					logError('setCommandForAllHeaters : UPDATE query failed');
+					log.error('setCommandForAllHeaters : UPDATE query failed');
 				}
 			}
 		);
@@ -367,7 +359,7 @@ function Teleinfo() {
 						resolve(reply);
 					}
 					else {
-						logError('getHeaters : SELECT query failed');
+						log.error('getHeaters : SELECT query failed');
 						reject(err);
 					}
 				}
@@ -385,7 +377,7 @@ function Teleinfo() {
 		});
 
 		lineReader.on('close', function() {
-			logMessage('********** LINE READER CLOSED');
+			log.info('********** LINE READER CLOSED');
 			infiniteReading();
 		});
 
@@ -397,7 +389,7 @@ function Teleinfo() {
 			if (rcvdMessage !== -1) {
 				var phase = parseInt(line.substr(5, 1));
 				var amperes = parseInt(line.substr(7, 3));
-				logMessage('IINST phase ' + phase + ' : ' + amperes);
+
 				emitMessage.type = 'current';
 				emitMessage.data = {
 					phase: phase,
@@ -406,9 +398,11 @@ function Teleinfo() {
 				self.emit('notification', emitMessage); 
 				
 				if (amperes >= 30) {
+					log.info('IINST phase ' + phase + ' : ' + amperes);
 					switchOneOff(phase);
 				}
 				else {
+					log.debug('IINST phase ' + phase + ' : ' + amperes);
 					switchOneBack(phase);
 				}
 				return;
@@ -424,7 +418,7 @@ function Teleinfo() {
 					value: amper_dep
 				};
 				self.emit('notification', emitMessage); 
-				logMessage('ADIR phase ' + phase_dep + ' : ' + amper_dep);
+				log.info('ADIR phase ' + phase_dep + ' : ' + amper_dep);
 				switchOneOff(phase_dep);
 				return;
 			}
@@ -438,7 +432,7 @@ function Teleinfo() {
 					value: hp
 				};
 				self.emit('notification', emitMessage); 
-				logMessage('hp : ' + hp);
+				log.debug('hp : ' + hp);
 				return;
 			}
 
@@ -451,7 +445,7 @@ function Teleinfo() {
 					value: hc
 				};
 				self.emit('notification', emitMessage); 
-				logMessage('hc : ' + hc);
+				log.debug('hc : ' + hc);
 				return;
 			}
 
@@ -464,7 +458,8 @@ function Teleinfo() {
 					time: timestamp,
 					value: watts
 				};
-				self.emit('notification', emitMessage); 
+				self.emit('notification', emitMessage);
+				log.debug('watts : ' + watts); 
 				return;
 			}
 		});

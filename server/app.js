@@ -1,11 +1,30 @@
 var WebSocketServer = require('ws').Server;
-var wss = new WebSocketServer({port: 3000});
 var teleinfo = require('./monitor');
+var log = require('./logger');
 	
+var nbSockets = 0;
+var protocol = "UNTOKENGENEREAUHASARDPOURACCEDERAUSERVEURWEBSOCKET";
+var options = {
+	port: 3000,
+	handleProtocols: function(protocols, cb) {
+		if (protocols.indexOf(protocol) > -1) {
+			log.info('websocket protocol identification successful');
+			cb(true, protocol);
+		}
+		else {
+			log.error('websocket protocol unauthorized');
+			cb(false, null);
+		}
+	},
+};
 
+
+var wss = new WebSocketServer(options, () => {log.info('****************** SERVER STARTED ********************');});
+//log.info(wss);
 
 wss.on('connection', function(ws) {
 	//var source = ws.upgradeReq.url;
+
 	var broadcaster = function(message) {
 		ws.send(JSON.stringify(message), function(error) {
 			if (!error) {
@@ -19,22 +38,25 @@ wss.on('connection', function(ws) {
 	};
 
 	teleinfo.addListener('notification', broadcaster);
-	//console.log(source, 'websocket connected');
-
+	++nbSockets;
+	log.info('websocket connected, total = ' + nbSockets);
 
 	ws.on('message', (messageString, flags) => {
+
 		var message = {};
+		
 		try {
 			message = JSON.parse(messageString);
 		} catch (e) {
 			//console.log('bad message', e);
 			return;
 		}
+
 		//console.log(source, 'websocket received: ', message, flags);
 		switch (message.type) {
 			case 'command' :
 				if (!('data' in message && 'command' in message.data && 'id' in message.data)) {
-					console.log('command: syntax error');
+					log.error('command: syntax error');
 					return;
 				}
 				teleinfo.setCommandForHeater(message.data.command, message.data.id);
@@ -42,7 +64,7 @@ wss.on('connection', function(ws) {
 
 			case 'uniformCommand' :
 				if (!('data' in message)) {
-					console.log('uniformCommand: syntax error');
+					log.error('uniformCommand: syntax error');
 					return;
 				}
 				teleinfo.setCommandForAllHeaters(message.data);
@@ -57,7 +79,7 @@ wss.on('connection', function(ws) {
 				)
 				.catch(
 					function(err) {
-						console.log('getHeaters promise rejected', err);
+						log.error('getHeaters promise rejected', err);
 					}
 				);
 				break;
@@ -65,8 +87,9 @@ wss.on('connection', function(ws) {
 	});
 
 	ws.on('close', () => {
-		//console.log(source, 'websocket disconnected');
 		teleinfo.removeListener('notification', broadcaster);
+		--nbSockets;
+		log.info('websocket disconnected, total = ' + nbSockets);
 	});
 
 });
