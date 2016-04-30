@@ -14,8 +14,8 @@ Instructions pour installer le serveur radiateurs
 * Keyboard : French
 * Change password
 * Enable SSH
-* Enable SPI
 * Enable I2C
+* Disable shell on serial connection
 * Boot into CLI
 * Wait for Network at Boot
 * sudo reboot
@@ -39,8 +39,11 @@ Instructions pour installer le serveur radiateurs
 
 ### Download node.js ARM binaries from nodejs.org
 * npm install -g forever
+* npm install -g nodemon
+* npm install -g node-inspector
 
-### Paramétrage de ddclient
+
+### 
 * cd /etc
 * sudo rm ddclient.conf
 * sudo ln -s ~/django/cmd_web/ddclient.conf ddclient.conf
@@ -59,7 +62,7 @@ Instructions pour installer le serveur radiateurs
 * i2c-bcm2708 
 * i2c-dev
 * sudo nano /boot/config.txt
-* dtparam=i2c1=on
+* dtparam=i2c=on
 * dtparam=i2c_arm=on
 
 ### Parametrage de nginx
