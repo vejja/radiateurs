@@ -43,20 +43,29 @@ cd letsencrypt
 ./letsencrypt-auto --help
 ```
 
+Check that `letsencrypt`is executable from the command line
+
+If not: `sudo ln -s ~/.local/share/letsencrypt/bin/letsencrypt /usr/local/bin/letsencrypt`
 
 ### Download node.js ARM binaries from nodejs.org
 ```
-* npm install -g bower
-* npm install -g forever
-* npm install -g nodemon
-* npm install -g node-inspector
+npm install -g bower
+npm install -g forever
+npm install -g nodemon
+npm install -g node-inspector
 ```
 
 Check that node utilities are executable from the command line
-If not: sudo ln -s /opt/node/bin/<executable> /usr/local/bin/<executable>
+
+If not: `sudo ln -s /opt/node/bin/<executable> /usr/local/bin/<executable>`
 
 
-### Link scripts
+### Symlink config files
+| Config file  | Repo Script |
+|--------------|-------------|
+| /etc/ddclient.conf | ddclient.conf |
+| /etc/nginx/nginx.conf | nginx.conf |
+| /etc/nginx/sites-available/default | default |
 * cd /etc
 * sudo rm ddclient.conf
 * sudo ln -s ~/django/cmd_web/ddclient.conf ddclient.conf
