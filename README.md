@@ -68,26 +68,22 @@ If not: `sudo ln -s /opt/node/bin/<executable> /usr/local/bin/<executable>`
 | /etc/nginx/sites-available/default | default | SSL, Basic auth, websocket proxy forward |
 | /etc/rc.local | rc.local | Boot script that launches the serial UART interface & the forever daemon that keeps node.js live in spite of crashes |
 
+### Launch letsencrypt
+```
+cd radiateurs/server/scripts
+./setup-certificate.sh
+```
 
-### ttyAMA0
-* sudo nano /boot/cmdline.txt
+Then `sudo crontab -e` and add the line `30 3 * * * /home/pi/radiateurs/server/scripts/renew-certificate.sh >> /var/log/letsencrypt/cronjob.log`
+
+### Check ttyAMA0 and i2c
+`sudo nano /boot/cmdline.txt`
 * Supprimer console=ttyAMA0,115200 kgdboc=ttyAMA0,115200
-* sudo systemctl stop serial-getty@ttyAMA0.service
-* sudo systemctl disable serial-getty@ttyAMA0.service
-* sudo nano /etc/rc.local
-* stty -F /dev/ttyAMA0 1200 sane evenp parenb cs7 -crtscts
 
-### i2c
-* sudo nano /etc/modules
+`sudo nano /etc/modules`
 * i2c-bcm2708 
 * i2c-dev
-* sudo nano /boot/config.txt
+
+`sudo nano /boot/config.txt`
 * dtparam=i2c=on
 * dtparam=i2c_arm=on
-
-### Parametrage de nginx
-* cd /etc/nginx/sites-available
-* sudo ln -s ~/django/cmd_web/nginx.conf radiateurs.conf
-* cd /etc/nginx/sites-enabled
-* sudo ln -s ../sites-available/radiateurs.conf radiateurs.conf
-* sudo service nginx restart
