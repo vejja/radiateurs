@@ -21,15 +21,15 @@ Instructions pour installer le serveur radiateurs
 * sudo reboot
 
 ### Wifi configuration
-* sudo nano /etc/wpa-supplicant/wpa-supplicant.conf
+``` 
+sudo nano /etc/wpa-supplicant/wpa-supplicant.conf
 * network={
         ssid="****"
         psk="****"
         key_mgmt=WPA-PSK
 }
-* sudo nano /etc/network/interfaces
-* auto wlan0
-* sudo timedatectl set-ntp true
+sudo timedatectl set-ntp true
+```
 
 ### Install major utilities
 ```
