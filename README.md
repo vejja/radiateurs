@@ -78,6 +78,10 @@ Then `sudo crontab -e` and add the line `30 3 * * * /home/pi/radiateurs/server/s
 
 ### Check ttyAMA0 and i2c
 
+`cat /dev/ttyAMA0`
+`gpio i2cd`
+
+
 `sudo nano /boot/cmdline.txt`
 
 * Supprimer console=ttyAMA0,115200 kgdboc=ttyAMA0,115200
