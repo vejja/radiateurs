@@ -78,9 +78,12 @@ Then `sudo crontab -e` and add the line `30 3 * * * /home/pi/radiateurs/server/s
 
 ### Check ttyAMA0 and i2c
 
-`cat /dev/ttyAMA0`
-`gpio i2cd`
+```
+cat /dev/ttyAMA0
+gpio i2cd
+```
 
+If needed : 
 
 `sudo nano /boot/cmdline.txt`
 
