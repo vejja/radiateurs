@@ -31,19 +31,32 @@ Instructions pour installer le serveur radiateurs
 * auto wlan0
 * sudo timedatectl set-ntp true
 
-### sudo apt-get install
-* git
-* nginx
-* sqlite3
-* ddclient
+### Install major utilities
+```
+sudo apt-get install git nginx sqlite3 ddclient
+```
+
+### Install LetsEncrypt
+```
+git clone https://github.com/letsencrypt/letsencrypt
+cd letsencrypt
+./letsencrypt-auto --help
+```
+
 
 ### Download node.js ARM binaries from nodejs.org
+```
+* npm install -g bower
 * npm install -g forever
 * npm install -g nodemon
 * npm install -g node-inspector
+```
+
+Check that node utilities are executable from the command line
+If not: sudo ln -s /opt/node/bin/<executable> /usr/local/bin/<executable>
 
 
-### 
+### Link scripts
 * cd /etc
 * sudo rm ddclient.conf
 * sudo ln -s ~/django/cmd_web/ddclient.conf ddclient.conf
