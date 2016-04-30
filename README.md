@@ -61,14 +61,12 @@ If not: `sudo ln -s /opt/node/bin/<executable> /usr/local/bin/<executable>`
 
 
 ### Symlink config files
-| Config file  | Repo Script |
-|--------------|-------------|
-| /etc/ddclient.conf | ddclient.conf |
-| /etc/nginx/nginx.conf | nginx.conf |
-| /etc/nginx/sites-available/default | default |
-* cd /etc
-* sudo rm ddclient.conf
-* sudo ln -s ~/django/cmd_web/ddclient.conf ddclient.conf
+| Config file  | Repo Script | Description |
+|--------------|-------------|-------------|
+| /etc/ddclient.conf | ddclient.conf | *ddclient* keeps the dyndns record up to date with the IP address of the Livebox |
+| /etc/nginx/nginx.conf | nginx.conf | websocket upstream definition |
+| /etc/nginx/sites-available/default | default | SSL, Basic auth, websocket proxy forward |
+| /etc/rc.local | rc.local | Boot script that launches the serial UART interface & the forever daemon that keeps node.js live in spite of crashes |
 
 
 ### ttyAMA0
