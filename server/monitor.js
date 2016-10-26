@@ -203,6 +203,7 @@ function Teleinfo() {
 				data: data
 			};
 			self.emit('notification', emitMessage);
+			self.saveMessage(emitMessage);
 		}
 	};
 
@@ -227,6 +228,7 @@ function Teleinfo() {
 					data: data
 				};
 				self.emit('notification', emitMessage);
+				self.saveMessage(emitMessage);
 			})
 			.catch((err) => {
 				if (err === undefined) {
@@ -241,6 +243,7 @@ function Teleinfo() {
 						data: data
 					};
 					self.emit('notification', emitMessage);
+					self.saveMessage(emitMessage);
 				}
 			});
 		}
@@ -434,7 +437,8 @@ function Teleinfo() {
 					phase: phase,
 					value: amperes
 				};
-				self.emit('notification', emitMessage); 
+				self.emit('notification', emitMessage);
+				self.saveMessage(emitMessage);
 				
 				if (amperes >= 30) {
 					log.info('IINST phase ' + phase + ' : ' + amperes);
@@ -457,6 +461,7 @@ function Teleinfo() {
 					value: amper_dep
 				};
 				self.emit('notification', emitMessage); 
+				self.saveMessage(emitMessage);
 				log.info('ADIR phase ' + phase_dep + ' : ' + amper_dep);
 				switchOneOff(phase_dep);
 				return;
@@ -471,6 +476,7 @@ function Teleinfo() {
 					value: hp
 				};
 				self.emit('notification', emitMessage); 
+				self.saveMessage(emitMessage);
 				log.debug('hp : ' + hp);
 				return;
 			}
@@ -484,6 +490,7 @@ function Teleinfo() {
 					value: hc
 				};
 				self.emit('notification', emitMessage); 
+				self.saveMessage(emitMessage);
 				log.debug('hc : ' + hc);
 				return;
 			}
@@ -498,6 +505,7 @@ function Teleinfo() {
 					value: watts
 				};
 				self.emit('notification', emitMessage);
+				self.saveMessage(emitMessage);
 				log.debug('watts : ' + watts); 
 				return;
 			}
