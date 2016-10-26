@@ -368,6 +368,39 @@ function Teleinfo() {
 		return p;
 	};
 
+	this.saveMessage = function(msg) {
+		if (!('type' in msg)) {
+			return;
+		}
+
+		var sqlParams = {
+			$type: msg.type,
+			$phase: null,
+			$period: null,
+			$value: msg.data.value,
+			$timestamp: Date.now() / 1000
+		};
+
+		switch (msg.type) {
+			case 'current':
+			case 'switch':
+			sqlParams.$phase = msg.data.phase;
+			break;
+			
+			case 'meter':
+			sqlParams.$period = msg.data.period; 
+			break;
+
+			case 'power':
+			break;
+		}
+
+		db.run(
+			"INSERT INTO ticks (type, phase, period, value, timestamp) VALUES ($type, $phase, $period, $value, $timestamp)"
+			, sqlParams
+		);
+	};
+
 
 	var infiniteReading = function() {
 		var lineReader;

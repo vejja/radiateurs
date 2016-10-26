@@ -35,6 +35,7 @@ wss.on('connection', function(ws) {
 				ws.close();
 			}
 		});
+		teleinfo.saveMessage(message);
 	};
 
 	teleinfo.addListener('notification', broadcaster);
