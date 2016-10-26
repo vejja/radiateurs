@@ -370,6 +370,7 @@ function Teleinfo() {
 
 	this.saveMessage = function(msg) {
 		if (!('type' in msg)) {
+			log.error('no type to save message in db');
 			return;
 		}
 
