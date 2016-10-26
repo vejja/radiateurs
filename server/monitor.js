@@ -396,8 +396,13 @@ function Teleinfo() {
 		}
 
 		db.run(
-			"INSERT INTO ticks (type, phase, period, value, timestamp) VALUES ($type, $phase, $period, $value, $timestamp)"
-			, sqlParams
+			"INSERT INTO ticks (type, phase, period, value, timestamp) VALUES ($type, $phase, $period, $value, $timestamp)",
+			sqlParams,
+			(err) => {
+				if (err) {
+						log.error('saveMessage error : INSERT query failed; ' + err);
+				}
+			}
 		);
 	};
 
