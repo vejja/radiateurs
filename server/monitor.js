@@ -378,15 +378,15 @@ function Teleinfo() {
 			return;
 		}
 
-		let sqlParams = {
+		var sqlParams = {
 			$type: msg.type,
 			$phase: null,
 			$period: null,
 			$value: msg.data.value,
 		};
 
-		let getQuery = "SELECT value FROM ticks WHERE type = $type AND phase = $phase AND period = $period ORDER BY rowid DESC LIMIT 1;";
-		let insertQuery = "INSERT INTO ticks (type, phase, period, value) VALUES ($type, $phase, $period, $value);";
+		var getQuery = "SELECT value FROM ticks WHERE type = $type AND phase = $phase AND period = $period ORDER BY rowid DESC LIMIT 1;";
+		var insertQuery = "INSERT INTO ticks (type, phase, period, value) VALUES ($type, $phase, $period, $value);";
 
 		switch (msg.type) {
 			case 'current':
