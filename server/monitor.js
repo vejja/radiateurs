@@ -382,11 +382,7 @@ function Teleinfo() {
 			$type: msg.type,
 			$phase: null,
 			$period: null,
-			$value: msg.data.value,
 		};
-
-		var getQuery = "SELECT value FROM ticks WHERE type = $type AND phase = $phase AND period = $period ORDER BY rowid DESC LIMIT 1;";
-		var insertQuery = "INSERT INTO ticks (type, phase, period, value) VALUES ($type, $phase, $period, $value);";
 
 		switch (msg.type) {
 			case 'current':
@@ -402,10 +398,13 @@ function Teleinfo() {
 			break;
 		}
 
+		var getQuery = "SELECT value FROM ticks WHERE type = $type AND phase = $phase AND period = $period ORDER BY rowid DESC LIMIT 1;";
 		memdb.get(getQuery, sqlParams, (err, row) => {
 			if (err) {
 				log.error('saveMessage error : SELECT query failed; ' + err);
 			} else if (row.value != msg.value) {
+				var insertQuery = "INSERT INTO ticks (type, phase, period, value) VALUES ($type, $phase, $period, $value);";
+				sqlParams.$value = msg.data.value,
 				memdb.run(insertQuery, sqlParams, (err) => {
 					if (err) {
 						log.error('saveMessage error : INSERT query failed; ' + err);
