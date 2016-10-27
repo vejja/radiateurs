@@ -3,6 +3,7 @@ var readline = require('readline');
 var fs = require('fs');
 var sqlite3 = require('sqlite3');
 var db = new sqlite3.Database('/home/pi/radiateurs/server/radiateurs.db');
+var memdb = new sqlite3.Database(':memory:');
 var events = require('events');
 var log = require('./logger');
 
@@ -377,38 +378,53 @@ function Teleinfo() {
 			return;
 		}
 
-		var sqlParams = {
+		let sqlParams = {
 			$type: msg.type,
 			$phase: null,
 			$period: null,
 			$value: msg.data.value,
-			$timestamp: Date.now() / 1000
 		};
+
+		let getQuery = "SELECT value FROM ticks WHERE type = $type AND phase = $phase AND period = $period ORDER BY rowid DESC LIMIT 1;";
+		let insertQuery = "INSERT INTO ticks (type, phase, period, value) VALUES ($type, $phase, $period, $value);";
 
 		switch (msg.type) {
 			case 'current':
 			case 'switch':
-			sqlParams.$phase = msg.data.phase;
+				sqlParams.$phase = msg.data.phase;
 			break;
 			
 			case 'meter':
-			sqlParams.$period = msg.data.period; 
+				sqlParams.$period = msg.data.period; 
 			break;
 
 			case 'power':
 			break;
 		}
 
-		db.run(
-			"INSERT INTO ticks (type, phase, period, value, timestamp) VALUES ($type, $phase, $period, $value, $timestamp)",
-			sqlParams,
-			(err) => {
-				if (err) {
+		memdb.get(getQuery, sqlParams, (err, row) => {
+			if (err) {
+				log.error('saveMessage error : SELECT query failed; ' + err);
+			} else if (row.value != msg.value) {
+				memdb.run(insertQuery, sqlParams, (err) => {
+					if (err) {
 						log.error('saveMessage error : INSERT query failed; ' + err);
-				}
+					}
+				});
 			}
-		);
+		});	
 	};
+
+	var initMsgMemory = function() {
+		memdb.run("CREATE TABLE ticks(timestamp INTEGER(4) NOT NULL DEFAULT (strftime('%s','now')), phase INTEGER, period STRING, value INTEGER);");
+		setInterval(() => { 
+			memdb.run("DELETE FROM ticks WHERE timestamp < $yesterday", { $yesterday : Date.now() / 1000 - 3600 * 24 }, (err) => {
+				if (err) {
+					log.error('saveMessage error : DELETE query failed; ' + err);
+				}
+			});    
+		}, 3600000);
+};
 
 
 	var infiniteReading = function() {
@@ -513,6 +529,7 @@ function Teleinfo() {
 	};
 
 	initHeatersFromDatabase();
+	initMsgMemory();
 	infiniteReading();
 
 }
