@@ -3,7 +3,7 @@ var readline = require('readline');
 var fs = require('fs');
 var sqlite3 = require('sqlite3');
 var db = new sqlite3.Database('/home/pi/radiateurs/server/radiateurs.db');
-//var memdb = new sqlite3.Database(':memory:');
+var memdb = new sqlite3.Database(':memory:');
 var events = require('events');
 var log = require('./logger');
 
@@ -399,13 +399,13 @@ function Teleinfo() {
 		}
 
 		var getQuery = "SELECT value FROM ticks WHERE type = $type AND phase = $phase AND period = $period ORDER BY rowid DESC LIMIT 1;";
-		db.get(getQuery, sqlParams, (err, row) => {
+		memdb.get(getQuery, sqlParams, (err, row) => {
 			if (err) {
 				log.error('saveMessage error : SELECT query failed; ' + err);
 			} else if ((row == null) || (row.value != msg.value)) {
 				var insertQuery = "INSERT INTO ticks (type, phase, period, value) VALUES ($type, $phase, $period, $value);";
 				sqlParams.$value = msg.data.value,
-				db.run(insertQuery, sqlParams, (err) => {
+				memdb.run(insertQuery, sqlParams, (err) => {
 					if (err) {
 						log.error('saveMessage error : INSERT query failed; ' + err);
 					}
@@ -415,9 +415,9 @@ function Teleinfo() {
 	};
 
 	var initMsgMemory = function() {
-		db.run("CREATE VIRTUAL TABLE ticks(timestamp INTEGER(4) NOT NULL DEFAULT (strftime('%s','now')), type STRING, phase INTEGER, period STRING, value INTEGER);");
+		memdb.run("CREATE TABLE ticks(timestamp INTEGER(4) NOT NULL DEFAULT (strftime('%s','now')), type STRING, phase INTEGER, period STRING, value INTEGER);");
 		setInterval(() => { 
-			db.run("DELETE FROM ticks WHERE timestamp < $yesterday", { $yesterday : Date.now() / 1000 - 3600 * 24 }, (err) => {
+			memdb.run("DELETE FROM ticks WHERE timestamp < $yesterday", { $yesterday : Date.now() / 1000 - 3600 * 24 }, (err) => {
 				if (err) {
 					log.error('saveMessage error : DELETE query failed; ' + err);
 				}
