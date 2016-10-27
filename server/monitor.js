@@ -416,7 +416,7 @@ function Teleinfo() {
 	};
 
 	var initMsgMemory = function() {
-		memdb.run("CREATE TABLE ticks(timestamp INTEGER(4) NOT NULL DEFAULT (strftime('%s','now')), phase INTEGER, period STRING, value INTEGER);");
+		memdb.run("CREATE TABLE ticks(timestamp INTEGER(4) NOT NULL DEFAULT (strftime('%s','now')), type STRING, phase INTEGER, period STRING, value INTEGER);");
 		setInterval(() => { 
 			memdb.run("DELETE FROM ticks WHERE timestamp < $yesterday", { $yesterday : Date.now() / 1000 - 3600 * 24 }, (err) => {
 				if (err) {
