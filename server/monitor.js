@@ -402,7 +402,7 @@ function Teleinfo() {
 		memdb.get(getQuery, sqlParams, (err, row) => {
 			if (err) {
 				log.error('saveMessage error : SELECT query failed; ' + err);
-			} else if (!('value' in row) || (row.value != msg.value)) {
+			} else if ((row == null) || (row.value != msg.value)) {
 				var insertQuery = "INSERT INTO ticks (type, phase, period, value) VALUES ($type, $phase, $period, $value);";
 				sqlParams.$value = msg.data.value,
 				memdb.run(insertQuery, sqlParams, (err) => {
