@@ -422,7 +422,7 @@ function Teleinfo() {
 					log.error('saveMessage error : DELETE query failed; ' + err);
 				}
 			});    
-		}, 10000);
+		}, 600000);
 };
 
 
