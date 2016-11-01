@@ -3,7 +3,6 @@ var readline = require('readline');
 var fs = require('fs');
 var sqlite3 = require('sqlite3');
 var db = new sqlite3.Database('/home/pi/radiateurs/server/radiateurs.db');
-var memdb = new sqlite3.Database(':memory:');
 var events = require('events');
 var log = require('./logger');
 
@@ -20,7 +19,6 @@ function I2CController() {
 	var IODIRB = 0x01;	// Direction du port B (input/output)
 	var OLATA = 0x14;	// Valeurs du port A en mode output
 	var OLATB = 0x15;	// Valeurs du port B en mode output
-
 
 	// Adresse du module I2C sur lequel communiquer
 	// numModule : le numero 0, 1 ou 2
@@ -51,7 +49,7 @@ function I2CController() {
 	// Helper. Renvoie le registre OLAT correspondant à un fil pilote
 	// wire : numero de fil pilote entre 1 et 8
 	var getOlatRegister = function(wire) {
-		// Le registre OLAT détermine la valeur à écrire sur le port GPIO qaund celui-ci est en mode output
+		// Le registre OLAT détermine la valeur à écrire sur le port GPIO quand celui-ci est en mode output
 		// Les fils pilotes 1 à 4 sont commandés par le port A
 		// et les fils pilotes 5 à 9 sont commandés par le port B
 		if (wire <= 4) {
@@ -113,6 +111,73 @@ function I2CController() {
 		return false; // erreur de fil pilote
 	};
 
+	var translateIntoCommand = function (state) {
+		if (state === 0b00)			// ni pos ni neg = marche
+			return MARCHE;
+		else if (state === 0b01)	// demi pos = arret
+			return ARRET;
+		else if (state === 0b10)	// demi neg = hors gel
+			return HORSGEL;
+		else if (state === 0b11)	// signal complet = eco
+			return ECO;
+
+		return ARRET;
+	};
+
+	var translateIntoState = function (command) {
+		if (command === MARCHE)			// ni pos ni neg = marche
+			return 0b00;
+		else if (command === ARRET)	// demi pos = arret
+			return 0b01;
+		else if (command === HORSGEL)	// demi neg = hors gel
+			return 0b10;
+		else if (command === ECO)	// signal complet = eco
+			return 0b11;
+
+		return 0b01;
+	};
+
+	// Récupère l'état des 8 radiateurs sur un module donnée
+	// module : le numéro du module (0-2)
+	// Renvoie un array de 8 valeurs, chacune d'entre elles peut être ARRET, MARCHE, ECO ou HORSGEL
+
+	this.readStates = function (module) {
+		var device = getModuleAddress(module);
+
+		// Toutes les broches sont utilisées en output sur le port A et sur le port B
+		i2cBus.writeByteSync(device, IODIRA, 0b00000000);
+		i2cBus.writeByteSync(deivce, IODIRB, 0b00000000);
+
+		// Lit les valeurs préexistantes sur le port A et sur le port B
+		var portA = i2cBus.readByteSync(device, OLATA);
+		var portB = i2cBus.readByteSync(device, OLATB);
+		
+		var statesA = [];
+		var statesB = [];
+
+		for (i=0; i<4; i++) {
+			// Lit les 2 derniers bits sur chaque port
+			var stateA = portA & 0b00000011;
+			var stateB = portB & 0b00000011;
+
+			// Transforme cette information en la commande correspondante
+			var commandA = translateIntoCommand(stateA);
+			var commandB = translateIntoCommand(stateB);
+
+			// Enregistre la commande dans l'array
+			statesA.push(commandA);
+			statesB.push(commandB);
+
+			// Décale les valeurs des registres de 2 bits vers la droite
+			portA >>= 2;
+			portB >>= 2;
+		}
+
+		// Colle les 2 arrays et retourne le résultat
+		return statesA.concat(statesB);
+
+	};
+
 	// Récupère l'état actuel d'un fil pilote 
 	// module : le numéro du module (0-2)
 	// wire : le numéro du fil pilote (1-8)
@@ -144,6 +209,41 @@ function I2CController() {
 
 		return false;
 	};
+
+	// Change l'état des fils pilotes
+	// module : le numéro de module (0-2) correspondant aux cavaliers (000, 001, 010)
+	// wires : un array avec 8 valeurs, chacune d'entre elles peut être MARCHE, ARRET, ECO ou HORSGEL
+	this.writeStates = function(module, wires) {
+		var device = getModuleAddress(module);
+
+		// Toutes les broches sont utilisées en output sur le port A et sur le port B
+		i2cBus.writeByteSync(device, IODIRA, 0b00000000);
+		i2cBus.writeByteSync(device, IODIRB, 0b00000000);
+
+		var portA = 0b01010101; // par defaut, arret
+		var portB = 0b01010101;
+
+		for (i=0; i<4; i++) {
+			// Lit les commandes à inscrire sur chaque port
+			var commandA = wires[i];
+			var commandB = wires[i+4];
+
+			// Transforme la commande en information binaire correspondante
+			var stateA = translateIntoState(commandA);
+			var stateB = translateIntoState(commandB);
+
+			// Décale les valeurs des registres de 2 bits vers la gauche
+			portA <<= 2;
+			portB <<= 2;
+
+			// Enregistre la nouvelle commande dans les 2 bits les plus à droite
+			portA |= stateA;
+			portB |= stateB;
+		}
+		// Modifie les valeurs sur le port A et sur le port B
+		i2cBus.writeByteSync(device, OLATA, portA);
+		i2cBus.writeByteSync(device, OLATB, portB);
+	} 
 
 	// Change l'etat d'un fil pilote
 	// module : le numero de modile (0-2) correspondant aux cavaliers (000, 001, 010)
@@ -373,6 +473,7 @@ function Teleinfo() {
 	};
 
 	this.saveMessage = function(msg) {
+		/*
 		if (!('type' in msg)) {
 			log.error('no type to save message in db');
 			return;
@@ -412,9 +513,11 @@ function Teleinfo() {
 				});
 			}
 		});	
+		*/
 	};
 
 	var initMsgMemory = function() {
+		/*
 		memdb.run("CREATE TABLE ticks(timestamp INTEGER(4) NOT NULL DEFAULT (strftime('%s','now')), type STRING, phase INTEGER, period STRING, value INTEGER);");
 		setInterval(() => { 
 			memdb.run("DELETE FROM ticks WHERE timestamp < $yesterday", { $yesterday : Date.now() / 1000 - 3600 * 24 }, (err) => {
@@ -423,6 +526,7 @@ function Teleinfo() {
 				}
 			});    
 		}, 600000);
+		*/
 };
 
 
