@@ -362,8 +362,8 @@ function Teleinfo() {
 				
 				// Reload les valeurs sur les modules I2C
 				// En prenant en compte les radiateurs déjà en cours de délestage
-				self.savedCommands.forEach((savedStates, phase) => {
-					var limitIndex = 7 - self.nbrSwitchedOff[phase - 1];
+				self.savedCommands.forEach((savedStates, module) => {
+					var limitIndex = 7 - self.nbrSwitchedOff[module];
 					var newStates = savedStates.map((state, index) => {
 						if (index > limitIndex) {
 							return ARRET;
@@ -371,7 +371,7 @@ function Teleinfo() {
 							return state;
 						}
 					});
-					self.i2cController.writeStates(phase - 1, newStates);
+					self.i2cController.writeStates(module, newStates);
 				})
 			}
 		);
