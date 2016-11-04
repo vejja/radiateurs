@@ -222,7 +222,7 @@ function I2CController() {
 		var portA = 0b01010101; // par defaut, arret
 		var portB = 0b01010101;
 
-		for (i=0; i<4; i++) {
+		for (i=3; i>=0; i--) {
 			// Lit les commandes à inscrire sur chaque port
 			var commandA = wires[i];
 			var commandB = wires[i+4];
