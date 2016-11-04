@@ -150,6 +150,8 @@ function I2CController() {
 		// Lit les valeurs préexistantes sur le port A et sur le port B
 		var portA = i2cBus.readByteSync(device, OLATA);
 		var portB = i2cBus.readByteSync(device, OLATB);
+
+		log.debug("read module #" + module + " : portA = " + portA + ", portB = " + portB);
 		
 		var statesA = [];
 		var statesB = [];
