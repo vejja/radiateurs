@@ -303,7 +303,7 @@ function Teleinfo() {
 			});
 			self.i2cController.writeStates(phase - 1, newStates);
 			++self.nbrSwitchedOff[phase - 1];
-			log.debug('phase ' + phase + ': delestage du fil #' + nextWire);
+			log.debug('phase ' + phase + '; nbr delestés ' + self.nbrSwitchedOff[phase - 1]);
 			var data = {
 				phase: phase,
 				value: self.nbrSwitchedOff[phase - 1]
@@ -330,7 +330,7 @@ function Teleinfo() {
 			});
 			self.i2cController.writeStates(phase - 1, newStates);
 			--self.nbrSwitchedOff[phase - 1];
-			log.debug('phase ' + phase + ': relestage du fil #' + wire);
+			log.debug('phase ' + phase + '; nbr delestés ' + self.nbrSwitchedOff[phase - 1]);
 			var data = {
 				phase: phase,
 				value: self.nbrSwitchedOff[phase - 1]
