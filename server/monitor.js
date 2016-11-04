@@ -6,7 +6,6 @@ var db = new sqlite3.Database('/home/pi/radiateurs/server/radiateurs.db');
 var events = require('events');
 var log = require('./logger');
 
-
 var ARRET = 0;
 var MARCHE = 1;
 var ECO = 2;
@@ -281,20 +280,30 @@ function I2CController() {
 function Teleinfo() {
 	events.EventEmitter.call(this); 	// call parent class constructor
 
+	this.savedCommands = [
+		[ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET],
+		[ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET],
+		[ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET],
+	];
 	this.nbrSwitchedOff = [0, 0, 0]; 	// nombre de radiateurs delestés
 	this.i2cController = new I2CController();
+	
 	var self = this;
 
-	function nextSwitchOff(phase) {
-		return (8 - self.nbrSwitchedOff[phase - 1]);
-	}
-
-	var switchOneOff = function(phase) {
-		var wire = nextSwitchOff(phase);
-		if (wire > 0) {
-			self.i2cController.writeState(phase - 1, wire, ARRET);
+	var switchOneOff = (phase) => {
+		var limitIndex = 7 - self.nbrSwitchedOff[phase - 1];
+		if (limitIndex >= 0) {
+			var savedStates = self.savedCommands[phase - 1];
+			var newStates = savedStates.map((state, index) => {
+				if (index >= limitIndex) {
+					return ARRET;
+				} else {
+					return state;
+				}
+			});
+			self.i2cController.writeStates(phase - 1, newStates);
 			++self.nbrSwitchedOff[phase - 1];
-			log.debug('phase ' + phase + ': delestage du fil #' + wire);
+			log.debug('phase ' + phase + ': delestage du fil #' + nextWire);
 			var data = {
 				phase: phase,
 				value: self.nbrSwitchedOff[phase - 1]
@@ -308,65 +317,62 @@ function Teleinfo() {
 		}
 	};
 
-	function nextSwitchBack(phase) {
-		return (9 - self.nbrSwitchedOff[phase - 1]);
-	}
-
 	var switchOneBack = (phase) => {
-		var wire = nextSwitchBack(phase);
-		if (wire < 9) {
-			self.getCommandForHeater(phase, wire)
-			.then((command) => {
-				self.i2cController.writeState(phase - 1, wire, command);
-				--self.nbrSwitchedOff[phase - 1];
-				log.debug('phase ' + phase + ': relestage du fil #' + wire);
-				var data = {
-					phase: phase,
-					value: self.nbrSwitchedOff[phase - 1]
-				};
-				var emitMessage = {
-					type: 'switch',
-					data: data
-				};
-				self.emit('notification', emitMessage);
-				self.saveMessage(emitMessage);
-			})
-			.catch((err) => {
-				if (err === undefined) {
-					--self.nbrSwitchedOff[phase - 1];
-					log.debug('phase ' + phase + ': relestage virtuel du fil #' + wire);
-					var data = {
-						phase: phase,
-						value: self.nbrSwitchedOff[phase - 1]
-					};
-					var emitMessage = {
-						type: 'switch',
-						data: data
-					};
-					self.emit('notification', emitMessage);
-					self.saveMessage(emitMessage);
+		var limitIndex = 8 - self.nbrSwitchedOff[phase - 1];
+		if (limitIndex <= 7) {
+			var savedStates = self.savedCommands[phase - 1];
+			var newStates = savedStates.map((state, index) => {
+				if (index > limitIndex) {
+					return ARRET;
+				} else {
+					return state;
 				}
 			});
+			self.i2cController.writeStates(phase - 1, newStates);
+			--self.nbrSwitchedOff[phase - 1];
+			log.debug('phase ' + phase + ': relestage du fil #' + wire);
+			var data = {
+				phase: phase,
+				value: self.nbrSwitchedOff[phase - 1]
+			};
+			var emitMessage = {
+				type: 'switch',
+				data: data
+			};
+			self.emit('notification', emitMessage);
+			self.saveMessage(emitMessage);
 		}
 	};
 
 	// Initialise les ordres GIFAM à partir de la base de données
 	var initHeatersFromDatabase = function() {
 		db.all(
-			"SELECT * FROM dashboard",
+			"SELECT * FROM dashboard ORDER BY phase, wire ASC",
 			[], 
 			(err, rows) => {
 				if (err) {
 					log.error('initHeatersFromDatabase : SELECT query failed; ' + err);
 					return;
-				}		
-				for (var i = 0; i < rows.length; ++i) {
-					var heater = rows[i];
-					var wire = heater.wire;
-					var phase = heater.phase;
-					var command = heater.command;
-					self.i2cController.writeState(phase - 1, wire, command);
 				}
+
+				// Enregistre les valeurs de la DB dans la table en memoire
+				rows.forEach(row => {
+					self.savedCommands[row.phase - 1][row.wire - 1] = row.command;
+				});
+				
+				// Reload les valeurs sur les modules I2C
+				// En prenant en compte les radiateurs déjà en cours de délestage
+				self.savedCommands.forEach((savedStates, phase) => {
+					var limitIndex = 7 - self.nbrSwitchedOff[phase - 1];
+					var newStates = savedStates.map((state, index) => {
+						if (index > limitIndex) {
+							return ARRET;
+						} else {
+							return state;
+						}
+					});
+					self.i2cController.writeStates(phase - 1, newStates);
+				})
 			}
 		);
 	};
