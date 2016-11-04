@@ -214,7 +214,7 @@ function I2CController() {
 	// wires : un array avec 8 valeurs, chacune d'entre elles peut être MARCHE, ARRET, ECO ou HORSGEL
 	this.writeStates = function(module, wires) {
 		var device = getModuleAddress(module);
-
+		log.debug("module " + module + ", wires " + wires); 
 		// Toutes les broches sont utilisées en output sur le port A et sur le port B
 		i2cBus.writeByteSync(device, IODIRA, 0b00000000);
 		i2cBus.writeByteSync(device, IODIRB, 0b00000000);
