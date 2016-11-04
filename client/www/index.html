@@ -83,10 +83,10 @@
                     Commande générale
                 </div>
                 <ion-list data-componentid="list2">
-                    <ion-toggle toggle-class="toggle-assertive" data-componentid="toggle1" ng-checked="system.uniformCommand == 0" ng-click="setCommand(0)">Arrêt</ion-toggle>
-                    <ion-toggle toggle-class="toggle-energized" data-componentid="toggle2" ng-checked="system.uniformCommand == 1" ng-click="setCommand(1)">Marche</ion-toggle>
-                    <ion-toggle toggle-class="toggle-balanced" data-componentid="toggle3" ng-checked="system.uniformCommand == 2" ng-click="setCommand(2)">Eco</ion-toggle>
-                    <ion-toggle toggle-class="toggle-calm" data-componentid="toggle4" ng-checked="system.uniformCommand == 3" ng-click="setCommand(3)">Hors-Gel</ion-toggle>
+                    <ion-toggle toggle-class="toggle-assertive" data-componentid="toggle1" ng-checked="system.uniformCommand == system.commands.ARRET" ng-click="setCommand(system.commands.ARRET)">Arrêt</ion-toggle>
+                    <ion-toggle toggle-class="toggle-energized" data-componentid="toggle2" ng-checked="system.uniformCommand == system.commands.MARCHE" ng-click="setCommand(system.commands.MARCHE)">Marche</ion-toggle>
+                    <ion-toggle toggle-class="toggle-balanced" data-componentid="toggle3" ng-checked="system.uniformCommand == system.commands.ECO" ng-click="setCommand(system.commands.ECO)">Eco</ion-toggle>
+                    <ion-toggle toggle-class="toggle-calm" data-componentid="toggle4" ng-checked="system.uniformCommand == system.commands.HORSGEL" ng-click="setCommand(system.commands.HORSGEL)">Hors-Gel</ion-toggle>
                 </ion-list>
             </div>
 

@@ -6,23 +6,25 @@ var db = new sqlite3.Database('/home/pi/radiateurs/server/radiateurs.db');
 var events = require('events');
 var log = require('./logger');
 
-var ARRET = 0;
-var MARCHE = 1;
-var ECO = 2;
-var HORSGEL = 3;
+var ARRET = 0b01;	// demi pos = arret
+var MARCHE = 0b00;	// ni pos ni neg = marche
+var ECO = 0b11;		// signal complet = eco
+var HORSGEL = 0b10;	// demi neg = hors gel
 
 
 function I2CController() {
 
 	var IODIRA = 0x00;	// Direction du port A (input/output)
 	var IODIRB = 0x01;	// Direction du port B (input/output)
-	var OLATA = 0x14;	// Valeurs du port A en mode output
-	var OLATB = 0x15;	// Valeurs du port B en mode output
+	var GPIOA = 0x12;   // Adresse du port A en mode input
+	var GPIOB = 0x13;   // Adresse du port B en mode input
+	var OLATA = 0x14;	// Adresse du port A en mode output
+	var OLATB = 0x15;	// Adresse du port B en mode output
 
 	// Adresse du module I2C sur lequel communiquer
 	// numModule : le numero 0, 1 ou 2
-	var getModuleAddress = function(module) {
-		if (module < 0b000 || module > 0b010)
+	var getModuleAddress = function(i2cModule) {
+		if (i2cModule < 0b000 || i2cModule > 0b010)
 			return false;
 		// L'adresse du MCP23017 est construite sur 7 bits : 0 1 0 0 A2 A1 A0
 		// Le numero de module est egal à son adresse en binaire : A2 A1 A0
@@ -30,65 +32,34 @@ function I2CController() {
 		// Il suffit donc de faire un bitwise OR de 0 1 0 0 0 0 0 et de A2 A1 A0
 		// (Attention sur la carte pilote j'ai inversé, A0 est à gauche et A2 à droite
 		// quand les connecteurs I2C sont en haut sur le rail)
-		return (0b0100000 | module);
-	};
-
-
-	var translateIntoCommand = function (state) {
-		if (state === 0b00)			// ni pos ni neg = marche
-			return MARCHE;
-		else if (state === 0b01)	// demi pos = arret
-			return ARRET;
-		else if (state === 0b10)	// demi neg = hors gel
-			return HORSGEL;
-		else if (state === 0b11)	// signal complet = eco
-			return ECO;
-
-		return ARRET;
-	};
-
-	var translateIntoState = function (command) {
-		if (command === MARCHE)			// ni pos ni neg = marche
-			return 0b00;
-		else if (command === ARRET)	// demi pos = arret
-			return 0b01;
-		else if (command === HORSGEL)	// demi neg = hors gel
-			return 0b10;
-		else if (command === ECO)	// signal complet = eco
-			return 0b11;
-
-		return 0b01;
+		return (0b0100000 | i2cModule);
 	};
 
 	// Récupère l'état des 8 radiateurs sur un module donnée
 	// module : le numéro du module (0-2)
 	// Renvoie un array de 8 valeurs, chacune d'entre elles peut être ARRET, MARCHE, ECO ou HORSGEL
 
-	this.readStates = function (module) {
-		var device = getModuleAddress(module);
+	this.readStates = function (phase) {
+		var device = getModuleAddress(phase - 1);
 
 		// Toutes les broches sont utilisées en output sur le port A et sur le port B
 		// Lit les valeurs préexistantes sur le port A et sur le port B
-		i2cBus.writeByteSync(device, IODIRA, 0b00000000);
-		var portA = i2cBus.readByteSync(device, OLATA);
-		i2cBus.writeByteSync(device, IODIRB, 0b00000000);
-		var portB = i2cBus.readByteSync(device, OLATB);
+		//i2cBus.writeByteSync(device, IODIRA, 0b00000000);
+		var portA = i2cBus.readByteSync(device, GPIOA);
+		//i2cBus.writeByteSync(device, IODIRB, 0b00000000);
+		var portB = i2cBus.readByteSync(device, GPIOB);
 		
-		var statesA = [];
-		var statesB = [];
+		var commandsA = [];
+		var commandsB = [];
 
 		for (i=0; i<4; i++) {
 			// Lit les 2 derniers bits sur chaque port
-			var stateA = portA & 0b00000011;
-			var stateB = portB & 0b00000011;
-
-			// Transforme cette information en la commande correspondante
-			var commandA = translateIntoCommand(stateA);
-			var commandB = translateIntoCommand(stateB);
+			var commandA = portA & 0b00000011;
+			var commandB = portB & 0b00000011;
 
 			// Enregistre la commande dans l'array
-			statesA.push(commandA);
-			statesB.push(commandB);
+			commandsA.push(commandA);
+			commandsB.push(commandB);
 
 			// Décale les valeurs des registres de 2 bits vers la droite
 			portA >>= 2;
@@ -96,50 +67,48 @@ function I2CController() {
 		}
 
 		// Colle les 2 arrays et retourne le résultat
-		var wires = statesA.concat(statesB);
-		log.debug("read module #" + module + " and wires " + wires + ": device = " + device + "; portA = " + portA + ", portB = " + portB);
+		var wires = commandsA.concat(commandsB);
+		log.debug("read phase #" + phase + " and wires " + wires + ": device = " + device + "; portA = " + portA + ", portB = " + portB);
 		return wires;
 	};
 
 	// Change l'état des fils pilotes
 	// module : le numéro de module (0-2) correspondant aux cavaliers (000, 001, 010)
 	// wires : un array avec 8 valeurs, chacune d'entre elles peut être MARCHE, ARRET, ECO ou HORSGEL
-	this.writeStates = function(module, wires) {
-		var device = getModuleAddress(module);
-		log.debug("module " + module + ", wires " + wires); 
+	this.writeStates = function(phase, wires) {
+		var device = getModuleAddress(phase - 1);
 
-		var portA = 0b01010101; // par defaut, arret
-		var portB = 0b01010101;
+		var portA = 0b00;
+		var portB = 0b00;
 
 		for (i=3; i>=0; i--) {
 			// Lit les commandes à inscrire sur chaque port en commençant par les fils les plus hauts
 			var commandA = wires[i];
 			var commandB = wires[i+4];
 
-			// Transforme la commande en information binaire correspondante
-			var stateA = translateIntoState(commandA);
-			var stateB = translateIntoState(commandB);
-
 			// Décale les valeurs des registres de 2 bits vers la gauche
 			portA <<= 2;
 			portB <<= 2;
 
 			// Enregistre la nouvelle commande dans les 2 bits les plus à droite
-			portA |= stateA;
-			portB |= stateB;
+			portA |= commandA;
+			portB |= commandB;
 		}
 
-		// Nettoie les bits à gauche pour n'en garder que les 8 de droite
-		portA &= 0b11111111;
-		portB &= 0b11111111;
-
 		// Modifie les valeurs sur le port A et sur le port B
-		log.debug("write module #" + module + " with wires " + wires + " : device = " + device + "; port A = " + portA + ", port B = " + portB);
-		i2cBus.writeByteSync(device, IODIRA, 0b00000000);
+		log.debug("write phase #" + phase + " with wires " + wires + " : device = " + device + "; port A = " + portA + ", port B = " + portB);
+		//i2cBus.writeByteSync(device, IODIRA, 0b00000000);
 		i2cBus.writeByteSync(device, OLATA, portA);
-		i2cBus.writeByteSync(device, IODIRB, 0b00000000);
+		//i2cBus.writeByteSync(device, IODIRB, 0b00000000);
 		i2cBus.writeByteSync(device, OLATB, portB);
-	} 
+	}
+
+	// Initialise les ports A et B de chaque module en mode output
+	for (phase = 1; phase <= 3; phase++) {
+		var device = getModuleAddress(phase);
+		i2cBus.writeByteSync(device, IODIRA, 0b00000000);
+		i2cBus.writeByteSync(device, IODIRB, 0b00000000);
+	}
 }
 
 function Teleinfo() {
@@ -151,6 +120,7 @@ function Teleinfo() {
 		[ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET],
 	];
 	this.nbrSwitchedOff = [0, 0, 0]; 	// nombre de radiateurs delestés
+	
 	this.i2cController = new I2CController();
 	
 	var self = this;
@@ -166,7 +136,7 @@ function Teleinfo() {
 					return state;
 				}
 			});
-			self.i2cController.writeStates(phase - 1, newStates);
+			self.i2cController.writeStates(phase, newStates);
 			++self.nbrSwitchedOff[phase - 1];
 			log.debug('phase ' + phase + '; nbr delestés ' + self.nbrSwitchedOff[phase - 1]);
 			var data = {
@@ -193,7 +163,7 @@ function Teleinfo() {
 					return state;
 				}
 			});
-			self.i2cController.writeStates(phase - 1, newStates);
+			self.i2cController.writeStates(phase, newStates);
 			--self.nbrSwitchedOff[phase - 1];
 			log.debug('phase ' + phase + '; nbr delestés ' + self.nbrSwitchedOff[phase - 1]);
 			var data = {
@@ -227,20 +197,20 @@ function Teleinfo() {
 				
 				// Reload les valeurs sur les modules I2C
 				// En prenant en compte les radiateurs déjà en cours de délestage
-				self.savedCommands.forEach((savedStates, module) => {
-					var limitIndex = 7 - self.nbrSwitchedOff[module];
-					var newStates = savedStates.map((state, index) => {
-						if (index > limitIndex) {
+				self.savedCommands.forEach((savedStates, phaseIndex) => {
+					var limitIndex = 7 - self.nbrSwitchedOff[phaseIndex];
+					var newStates = savedStates.map((state, wireIndex) => {
+						if (wireIndex > limitIndex) {
 							return ARRET;
 						} else {
 							return state;
 						}
 					});
-					self.i2cController.writeStates(module, newStates);
+					self.i2cController.writeStates(phaseIndex + 1, newStates);
 				});
 
-				for (module = 0; module < 3; ++module) {
-					log.info("read module #" + module + " : " + self.i2cController.readStates(module));
+				for (phase = 1; phase <= 3; ++phase) {
+					log.info("read phase #" + phase + " : " + self.i2cController.readStates(phase));
 				}
 			}
 		);

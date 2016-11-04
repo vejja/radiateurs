@@ -53,6 +53,7 @@ angular.module('app.controllers', [])
 .controller('tableauCtrl', function($scope, System) {
 	$scope.system = System;
 	System.loadAllHeaters();
+	
 	$scope.setCommand = function(heater, command) {
 		var heaterId = heater.id;
 		System.setCommandForOneHeater(heaterId, command);

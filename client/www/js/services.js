@@ -6,7 +6,12 @@ angular.module('app.services', [])
 	var system = {};
 
 	system.uniformCommand = undefined;				// variable dont la valeur indique si tous les radiateurs ont la même commande
-
+	system.commands = {
+		ARRET: 0b01,	// demi pos = arret
+		MARCHE: 0b00,	// ni pos ni neg = marche
+		ECO: 0b11,		// signal complet = eco
+		HORSGEL: 0b10	// demi neg = hors gel 
+	};
 	system.phases = [				// array de 3 objects, chacun du type {number: <numero de la phase>, heaters: <array des radiateurs>, switchedOff: <nbre de delestés>, current: <intensite de la phase>}
 		{number:1, heaters: [], switchedOff: 0, current: 0},
 		{number:2, heaters: [], switchedOff: 0, current: 0},
