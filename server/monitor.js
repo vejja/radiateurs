@@ -145,7 +145,7 @@ function I2CController() {
 
 		// Toutes les broches sont utilisées en output sur le port A et sur le port B
 		i2cBus.writeByteSync(device, IODIRA, 0b00000000);
-		i2cBus.writeByteSync(deivce, IODIRB, 0b00000000);
+		i2cBus.writeByteSync(device, IODIRB, 0b00000000);
 
 		// Lit les valeurs préexistantes sur le port A et sur le port B
 		var portA = i2cBus.readByteSync(device, OLATA);
