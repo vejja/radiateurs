@@ -248,7 +248,9 @@ function I2CController() {
 
 		// Modifie les valeurs sur le port A et sur le port B
 		log.debug("device " + device + "; port A = " + portA + ", port B = " + portB);
+		i2cBus.writeByteSync(device, IODIRA, 0b00000000);
 		i2cBus.writeByteSync(device, OLATA, portA);
+		i2cBus.writeByteSync(device, IODIRB, 0b00000000);
 		i2cBus.writeByteSync(device, OLATB, portB);
 	} 
 
