@@ -239,6 +239,11 @@ function I2CController() {
 			portA |= stateA;
 			portB |= stateB;
 		}
+
+		// Nettoie les bits à gauche pour n'en garder que les 8 de droite
+		portA &= 0b11111111;
+		portB &= 0b11111111;
+
 		// Modifie les valeurs sur le port A et sur le port B
 		log.debug("device " + device + "; port A = " + portA + ", port B = " + portB);
 		i2cBus.writeByteSync(device, OLATA, portA);
