@@ -1,192 +1,102 @@
-'use strict';
-
-(function (angular) {
-  var ngEpoch = angular.module('ng.epoch', []);
+(function(angular) {
+  'use strict';
 
   var allOptions = {
-    options: '=',
-    chartAxes: '=',
+    options: '=?',
+    chartAxes: '<',
     chartTicks: '=',
     chartTickFormats: '=',
     chartDomain: '=',
-    chartRange: '=',
-    chartMargins: '=',
-    chartMargin: '=',
-    chartInner: '=',
-    chartWidth: '=',
-    chartHeight: '=',
-    chartData: '=',
-    chartClass: '=',
-    chartOrientation: '=',
-    chartPadding: '=',
-    chartOuterPadding: '=',
-    chartRadius: '=',
-    chartFps: '=',
-    chartFormat: '=',
-    chartWindowSize: '=',
-    chartHistorySize: '=',
-    chartQueueSize: '=',
-    chartPixelRatio: '=',
-    chartBuckets: '=',
-    chartBucketRange: '=',
-    chartBucketPadding: '=',
-    chartOpacity: '=',
-    chartPaintZeroValues: '=',
-    chartStream: '=',
+    chartRange: '<',
+    chartMargins: '<',
+    chartMargin: '<',
+    chartInner: '<',
+    chartWidth: '<',
+    chartHeight: '<',
+    chartData: '<',
+    chartClass: '<',
+    chartOrientation: '<',
+    chartPadding: '<',
+    chartOuterPadding: '<',
+    chartRadius: '<',
+    chartFps: '<',
+    chartFormat: '<',
+    chartWindowSize: '<',
+    chartHistorySize: '<',
+    chartQueueSize: '<',
+    chartPixelRatio: '<',
+    chartBuckets: '<',
+    chartBucketRange: '<',
+    chartBucketPadding: '<',
+    chartOpacity: '<',
+    chartPaintZeroValues: '<',
+    chartStream: '<?',
     gaugeValue: '=',
-    gaugeDialSize: '=',
-    gaugeFormat: '=',
-    gaugeStream: '='
+    gaugeDialSize: '<',
+    gaugeFormat: '<',
+    gaugeStream: '<?'
   };
 
-  var baseDirective = {
-    restrict: 'EA',
-    replace: true,
-    template: '<div class="epoch"></div>',
-    scope: angular.copy(allOptions),
-    controller: 'epochController'
-  };
-
-  ngEpoch.controller('epochController', function ($scope, $compile) {
-    $scope.me;
-    $scope.filterOptions = function () {
-      var results = {};
-
-      // copy options first
-      if ($scope.options) {
-        angular.forEach($scope.options, function (v,k) {
-          this[k] = v;
-        }, results)
-      }
-      
-      angular.forEach($scope, function (v, k) {
-        if ( (k.indexOf('chart') === 0 || k.indexOf('gauge') === 0) &&
-             (k !== 'chartClass' && k !== 'gaugeDialSize') ) {
-          if (v) {
-            var key = k.substring(5);
-            var newKey = key.charAt(0).toLowerCase() + key.slice(1);
-            this[newKey] = v;
-          }
+  var EpochController = function($scope, $element) {
+    this.options = this.options || {};
+    this.renderEpoch = function(options) {
+      var container = angular.element($element[0].childNodes[0]);
+      if (!options) {
+        var type = $element[0].nodeName.toLowerCase().replace('epoch-', '').replace('live-', 'time.');
+        this.options.type = (type === 'gauge' || type === 'heatmap') ? 'time.' + type : type;
+        if (this.chartClass) {
+          container.addClass(this.chartClass);
         }
-      }, results);
-      return results;
+        if (this.options.type === 'time.gauge') {
+          container.addClass(this.gaugeDialSize || 'gauge-small');
+        }
+      }
+      this.epochObj = container.epoch(options || this.options);
     };
-    $scope.renderEpoch = function ($element, options) {
-      $scope.me = $element.epoch(options);
-      $compile($scope.me)($scope);
-      return $scope.me;
+    this.filterOptions = function() {
+      angular.forEach(this, function(v, k) {
+        var validKey = ((k.indexOf('chart') > -1 || k.indexOf('gauge') > -1) && (k !== 'chartClass' && k !== 'gaugeDialSize'));
+        if (angular.isDefined(v) && validKey) {
+          var newkey = k.substring(5);
+          this[newkey.charAt(0).toLowerCase() + newkey.slice(1)] = v;
+        }
+      }, this.options);
     };
-    $scope.$watch('chartStream', function (newVal) {
-      if (newVal) { $scope.me.push($scope.chartStream); }
-    }, true);
-    $scope.$watch('gaugeStream', function (newVal) {
-      if (newVal) { $scope.me.update($scope.gaugeStream); }
-    }, true);
-    $scope.$watch('chartData', function(newVal, oldVal) {
-      if (newVal != oldVal) { $scope.me.update(newVal); }
-    }, true);
-  });
+    this.$onChanges = function() {
+      if (this.epochObj) {
+        if (this.chartStream || this.gaugeStream) {
+          if (this.chartStream) { this.epochObj.push(this.chartStream); }
+          if (this.gaugeStream) { this.epochObj.update(this.gaugeStream); }
+        } else {
+          this.filterOptions();
+          this.renderEpoch(this.options);
+          this.epochObj.update(this.chartData);
+        }
+      }
+    };
+    this.$postLink = function() {
+      this.filterOptions();
+      this.renderEpoch();
+    };
+  };
 
-  ngEpoch.directive('epochArea', function ($compile) {
-    var areaFunction = function (scope, elem, attr) {
-      if (scope.chartClass) { elem.addClass(scope.chartClass); }
-      var options = scope.filterOptions();
-      options.type = 'area';
-      var area = scope.renderEpoch(elem, options);
-    };
-    return angular.extend(angular.copy(baseDirective), {link: areaFunction});
-  });
+  var baseComponent = {
+    controller: EpochController,
+    bindings: allOptions,
+    template: '<div class="epoch"></div>'
+  };
 
-  ngEpoch.directive('epochLiveArea', function () {
-    var liveAreaFunction = function (scope, elem, attr) {
-      if (scope.chartClass) { elem.addClass(scope.chartClass); }
-      var options = scope.filterOptions();
-      options.type = 'time.area';
-      var liveArea = scope.renderEpoch(elem, options);
-    };
-    return angular.extend(angular.copy(baseDirective), {link: liveAreaFunction});
-  });
+  EpochController.$inject = ['$scope', '$element'];
 
-  ngEpoch.directive('epochBar', function ($compile) {
-    var barFunction = function (scope, elem, attr) {
-      if (scope.chartClass) { elem.addClass(scope.chartClass); }
-      var options = scope.filterOptions();
-      options.type = 'bar';
-      var bar = scope.renderEpoch(elem, options);
-    };
-    return angular.extend(angular.copy(baseDirective), {link: barFunction});
-  });
-
-  ngEpoch.directive('epochLiveBar', function () {
-    var liveBarFunction = function (scope, elem, attr) {
-      if (scope.chartClass) { elem.addClass(scope.chartClass); }
-      var options = scope.filterOptions();
-      options.type = 'time.bar';
-      var liveBar = scope.renderEpoch(elem, options);
-    };
-    return angular.extend(angular.copy(baseDirective), {link: liveBarFunction});
-  });
-
-  ngEpoch.directive('epochLine', function ($compile) {
-    var lineFunction = function (scope, elem, attr) {
-      if (scope.chartClass) { elem.addClass(scope.chartClass); }
-      var options = scope.filterOptions();
-      options.type = 'line';
-      var line = scope.renderEpoch(elem, options);
-    };
-    return angular.extend(angular.copy(baseDirective), {link: lineFunction});
-  });
-
-  ngEpoch.directive('epochLiveLine', function () {
-    var liveLineFunction = function (scope, elem, attr) {
-      if (scope.chartClass) { elem.addClass(scope.chartClass); }
-      var options = scope.filterOptions();
-      options.type = 'time.line';
-      var liveLine = scope.renderEpoch(elem, options);
-    };
-    return angular.extend(angular.copy(baseDirective), {link: liveLineFunction});
-  });
-
-  ngEpoch.directive('epochPie', function ($compile) {
-    var pieFunction = function (scope, elem, attr) {
-      if (scope.chartClass) { elem.addClass(scope.chartClass); }
-      var options = scope.filterOptions();
-      options.type = 'pie';
-      var pie = scope.renderEpoch(elem, options);
-    };
-    return angular.extend(angular.copy(baseDirective), {link: pieFunction});
-  });
-
-  ngEpoch.directive('epochScatter', function ($compile) {
-    var linkFunction = function (scope, elem, attr) {
-      if (scope.chartClass) { elem.addClass(scope.chartClass); }
-      var options = scope.filterOptions();
-      options.type = 'scatter';
-      var scatter = scope.renderEpoch(elem, options);
-    };
-    return angular.extend(angular.copy(baseDirective), {link: linkFunction});
-  });
-
-  ngEpoch.directive('epochGauge', function () {
-    var gaugeFunction = function (scope, elem, attr) {
-      if (scope.chartClass) { elem.addClass(scope.chartClass); }
-      var gClass = (scope.gaugeDialSize) ? scope.gaugeDialSize : 'gauge-small';
-      elem.addClass(gClass);
-      var options = scope.filterOptions();
-      options.type = 'time.gauge';
-      var gauge = scope.renderEpoch(elem, options);
-    };
-    return angular.extend(angular.copy(baseDirective), {link: gaugeFunction});
-  });
-
-  ngEpoch.directive('epochHeatmap', function () {
-    var heatmapFunction = function (scope, elem, attr) {
-      if (scope.chartClass) { elem.addClass(scope.chartClass); }
-      var options = scope.filterOptions();
-      options.type = 'time.heatmap';
-      var heatmap = scope.renderEpoch(elem, options);
-    };
-    return angular.extend(angular.copy(baseDirective), {link: heatmapFunction});
-  });
-
+  angular.module('ng.epoch', [])
+    .component('epochArea', baseComponent)
+    .component('epochLiveArea', baseComponent)
+    .component('epochBar', baseComponent)
+    .component('epochLiveBar', baseComponent)
+    .component('epochLine', baseComponent)
+    .component('epochLiveLine', baseComponent)
+    .component('epochPie', baseComponent)
+    .component('epochScatter', baseComponent)
+    .component('epochGauge', baseComponent)
+    .component('epochHeatmap', baseComponent);
 })(angular);

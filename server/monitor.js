@@ -105,7 +105,7 @@ function I2CController() {
 
 	// Initialise les ports A et B de chaque module en mode output
 	for (phase = 1; phase <= 3; phase++) {
-		var device = getModuleAddress(phase);
+		var device = getModuleAddress(phase - 1);
 		i2cBus.writeByteSync(device, IODIRA, 0b00000000);
 		i2cBus.writeByteSync(device, IODIRB, 0b00000000);
 	}

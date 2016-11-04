@@ -1,6 +1,6 @@
 {
   "name": "justgage-toorshia",
-  "version": "1.2.2",
+  "version": "1.2.9",
   "main": "justgage.js",
   "ignore": [
     "R&D",
@@ -39,11 +39,11 @@
   ],
   "license": "MIT",
   "private": true,
-  "_release": "1.2.2",
+  "_release": "1.2.9",
   "_resolution": {
     "type": "version",
-    "tag": "1.2.2",
-    "commit": "71722a6b5bd4fe37377be3eb068a98a7734797d5"
+    "tag": "1.2.9",
+    "commit": "36a314966f6855f25dd84047a7ceb3a9875c8b1e"
   },
   "_source": "git://github.com/toorshia/justgage.git",
   "_target": "*",

@@ -1,10 +1,9 @@
 {
   "name": "epoch",
   "description": "A general purpose, real-time visualization library.",
-  "version": "0.6.0",
   "main": [
-    "/epoch.min.js",
-    "/epoch.min.css"
+    "dist/js/epoch.min.js",
+    "dist/css/epoch.min.css"
   ],
   "license": "MIT",
   "ignore": [
@@ -32,13 +31,17 @@
     "type": "git",
     "url": "git://github.com/fastly/epoch.git"
   },
-  "_release": "0.6.0",
+  "dependencies": {
+    "d3": "^3.4.13"
+  },
+  "version": "0.8.4",
+  "_release": "0.8.4",
   "_resolution": {
     "type": "version",
-    "tag": "0.6.0",
-    "commit": "42ff7da12942d8747f4cbf63d196c35b28a88a79"
+    "tag": "v0.8.4",
+    "commit": "8212143cc9c0bd19c8ab8bc5db5dfb73ed50bf7b"
   },
   "_source": "https://github.com/fastly/epoch.git",
-  "_target": "0.6.0",
+  "_target": "^0.8.4",
   "_originalSource": "epoch"
 }

@@ -1,6 +1,6 @@
 {
   "name": "radiateurs",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Radiateurs: An Ionic project",
   "dependencies": {
     "gulp": "^3.5.6",
@@ -23,6 +23,11 @@
     "ionic-plugin-keyboard"
   ],
   "cordovaPlatforms": [
-    "ios"
+    "ios",
+    {
+      "platform": "ios",
+      "version": "",
+      "locator": "ios"
+    }
   ]
 }
