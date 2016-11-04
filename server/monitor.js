@@ -378,7 +378,11 @@ function Teleinfo() {
 						}
 					});
 					self.i2cController.writeStates(module, newStates);
-				})
+				});
+
+				for (module = 0; module < 3; ++module) {
+					log.info("read module #" + module + " : " + self.i2cController.readStates(module));
+				}
 			}
 		);
 	};
