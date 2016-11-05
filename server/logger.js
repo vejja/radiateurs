@@ -1,5 +1,5 @@
 function Logger() {
-	var level = 'debug'; // Choisir entre error, info et debug
+	var level = 'info'; // Choisir entre error, info et debug
 
 	this.debug = function() {
 		if (level == 'debug') {
