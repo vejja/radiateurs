@@ -44,9 +44,9 @@ function I2CController() {
 
 		// Toutes les broches sont utilisées en output sur le port A et sur le port B
 		// Lit les valeurs préexistantes sur le port A et sur le port B
-		//i2cBus.writeByteSync(device, IODIRA, 0b00000000);
+		i2cBus.writeByteSync(device, IODIRA, 0b00000000);
 		var portA = i2cBus.readByteSync(device, GPIOA);
-		//i2cBus.writeByteSync(device, IODIRB, 0b00000000);
+		i2cBus.writeByteSync(device, IODIRB, 0b00000000);
 		var portB = i2cBus.readByteSync(device, GPIOB);
 		
 		var commandsA = [];
