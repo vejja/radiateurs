@@ -71,6 +71,7 @@ angular.module('app.services', [])
 					break;
 				case 'powerHistory' : 
 					updatePowerHistory(message.data);
+					break;
 			}
 			updateSystem();
 		};

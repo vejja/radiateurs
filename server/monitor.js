@@ -320,7 +320,7 @@ function Teleinfo() {
 
 	this.getPowerHistory = function() {
 		return {
-			type: "powserHistory",
+			type: "powerHistory",
 			data: self.powerHistory
 		};
 	};
