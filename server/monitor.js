@@ -319,7 +319,10 @@ function Teleinfo() {
 	};
 
 	this.getPowerHistory = function() {
-		return self.powerHistory;
+		return {
+			type: "powserHistory",
+			data: self.powerHistory
+		};
 	};
 
 	this.saveMessage = function(msg) {

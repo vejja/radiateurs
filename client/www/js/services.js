@@ -192,8 +192,8 @@ angular.module('app.services', [])
 	 * 
 	 * @param powerHistory 	Object [{time: <timestamp en secondes>, y: puissance en watts}, ...]
 	 */
-	function updatePowerHistory(powerHistory) {
-		system.powerData.values = powerHistory;
+	function updatePowerHistory(powerHistoryData) {
+		system.powerData.values = powerHistoryData;
 	}
 
 	/**
