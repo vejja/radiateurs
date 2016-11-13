@@ -45,8 +45,7 @@ angular.module('app.controllers', [])
    
 .controller('consommationCtrl', function($scope, System) {
 	$scope.system = System;
-	
-	System.loadPowerHistory();
+
 })
    
 .controller('tableauCtrl', function($scope, System) {
