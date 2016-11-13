@@ -72,16 +72,16 @@ wss.on('connection', function(ws) {
 
 			case 'loadAllHeaters' :
 				teleinfo.getHeaters()
-				.then(
-					function(reply) {
-						ws.send(JSON.stringify(reply), null);
-					}
-				)
-				.catch(
-					function(err) {
-						log.error('getHeaters promise rejected', err);
-					}
-				);
+				.then(function(reply) {
+					ws.send(JSON.stringify(reply), null);
+				}).catch(function(err) {
+					log.error('getHeaters promise rejected', err);
+				});
+				break;
+
+			case 'loadPowerHistory' :
+				var powerHistory = teleinfo.getPowerHistory();
+				ws.send(JSON.stringify(powerHistory), null);
 				break;
 		}
 	});

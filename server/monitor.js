@@ -120,6 +120,7 @@ function Teleinfo() {
 		[ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET],
 	];
 	this.nbrSwitchedOff = [0, 0, 0]; 	// nombre de radiateurs delestés
+	this.powerHistory = [{}]; 			// historique recent = array d'objets {time: <timestamp en secondes, y: <puissance en watts>}'
 	
 	this.i2cController = new I2CController();
 	
@@ -317,6 +318,10 @@ function Teleinfo() {
 		return p;
 	};
 
+	this.getPowerHistory = function() {
+		return self.powerHistory;
+	};
+
 	this.saveMessage = function(msg) {
 		/*
 		if (!('type' in msg)) {
@@ -358,19 +363,6 @@ function Teleinfo() {
 				});
 			}
 		});	
-		*/
-	};
-
-	var initMsgMemory = function() {
-		/*
-		memdb.run("CREATE TABLE ticks(timestamp INTEGER(4) NOT NULL DEFAULT (strftime('%s','now')), type STRING, phase INTEGER, period STRING, value INTEGER);");
-		setInterval(() => { 
-			memdb.run("DELETE FROM ticks WHERE timestamp < $yesterday", { $yesterday : Date.now() / 1000 - 3600 * 24 }, (err) => {
-				if (err) {
-					log.error('saveMessage error : DELETE query failed; ' + err);
-				}
-			});    
-		}, 600000);
 		*/
 	};
 
@@ -469,7 +461,13 @@ function Teleinfo() {
 					value: watts
 				};
 				self.emit('notification', emitMessage);
-				self.saveMessage(emitMessage);
+				self.powerHistory.push({ 
+					time: timestamp,
+					y: watts
+				});
+				if (self.powerHistory.length > 40) {
+					self.powerHistory.shift();
+				}
 				log.debug('watts : ' + watts); 
 				return;
 			}
@@ -477,7 +475,6 @@ function Teleinfo() {
 	};
 
 	initHeatersFromDatabase();
-	initMsgMemory();
 	infiniteReading();
 
 }

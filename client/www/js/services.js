@@ -22,6 +22,9 @@ angular.module('app.services', [])
 		savings: 0
 	};
 	system.power = undefined;
+	system.powerData = [
+		{label: 'power', values:[{}]}
+	];
 	system.powerStream = [{time:0, y:0}];					// object {time, value}
 	system.connection = Connection;
 
@@ -66,6 +69,8 @@ angular.module('app.services', [])
 				case 'switch' :
 					updateSwitchedOff(message.data);
 					break;
+				case 'powerHistory' : 
+					updatePowerHistory(message.data);
 			}
 			updateSystem();
 		};
@@ -183,6 +188,15 @@ angular.module('app.services', [])
 	}
 
 	/**
+	 * Charge l'historique de puissance instantanée
+	 * 
+	 * @param powerHistory 	Object [{time: <timestamp en secondes>, y: puissance en watts}, ...]
+	 */
+	function updatePowerHistory(powerHistory) {
+		system.powerData.values = powerHistory;
+	}
+
+	/**
 	 * Met à jour la puissance instantanée
 	 *
 	 * @param powerData		Object {time: <timestamp en secondes>, value: <puissance en watts>}
@@ -229,6 +243,10 @@ angular.module('app.services', [])
 	system.loadAllHeaters = function() {
 		sendMessage('loadAllHeaters', null);
 	};
+
+	system.loadPowerHistory = function() {
+		sendMessage('loadPowerHistory', null);
+	}
 
 	system.setConnectionType = function(type) {
 		Connection.type = type;
