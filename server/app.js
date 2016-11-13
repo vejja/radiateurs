@@ -79,10 +79,6 @@ wss.on('connection', function(ws) {
 				});
 				break;
 
-			case 'loadPowerHistory' :
-				var powerHistory = teleinfo.getPowerHistory();
-				ws.send(JSON.stringify(powerHistory), null);
-				break;
 		}
 	});
 

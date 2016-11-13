@@ -120,8 +120,7 @@ function Teleinfo() {
 		[ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET],
 	];
 	this.nbrSwitchedOff = [0, 0, 0]; 	// nombre de radiateurs delestés
-	this.powerHistory = [{}]; 			// historique recent = array d'objets {time: <timestamp en secondes, y: <puissance en watts>}'
-	
+		
 	this.i2cController = new I2CController();
 	
 	var self = this;
@@ -318,13 +317,6 @@ function Teleinfo() {
 		return p;
 	};
 
-	this.getPowerHistory = function() {
-		return {
-			type: "powerHistory",
-			data: self.powerHistory
-		};
-	};
-
 	this.saveMessage = function(msg) {
 		/*
 		if (!('type' in msg)) {
@@ -464,13 +456,6 @@ function Teleinfo() {
 					value: watts
 				};
 				self.emit('notification', emitMessage);
-				self.powerHistory.push({ 
-					time: timestamp,
-					y: watts
-				});
-				if (self.powerHistory.length > 40) {
-					self.powerHistory.shift();
-				}
 				log.debug('watts : ' + watts); 
 				return;
 			}
