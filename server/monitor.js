@@ -145,13 +145,13 @@ class Statistics {
 		var month = this.didStartOn.getMonth();
 		var date = this.didStartOn.getDate();
 		var hour = this.didStartOn.getHours(); 
-		var off1 = this.secondsSwitchedOff[0] / this.interval;
-		var off2 = this.secondsSwitchedOff[1] / this.interval;
-		var off3 = this.secondsSwitchedOff[2] / this.interval;
-		var int1 = this.secondsXintensity[0] / this.interval;
-		var int2 = this.secondsXintensity[1] / this.interval;
-		var int3 = this.secondsXintensity[2] / this.interval;
-		var watts = this.secondsXwatts / this.interval;
+		var off1 = this.secondsSwitchedOff[0] / this.interval * 1000;
+		var off2 = this.secondsSwitchedOff[1] / this.interval * 1000;
+		var off3 = this.secondsSwitchedOff[2] / this.interval * 1000;
+		var int1 = this.secondsXintensity[0] / this.interval * 1000;
+		var int2 = this.secondsXintensity[1] / this.interval * 1000;
+		var int3 = this.secondsXintensity[2] / this.interval * 1000;
+		var watts = this.secondsXwatts / this.interval * 1000;
 		var standardMeter = (this.endStandardMeter !== null && this.startStandardMeter !== null) ? this.endStandardMeter - this.startStandardMeter : 0;
 		var savingsMeter = (this.endSavingsMeter !== null && this.startSavingsMeter !== null) ? this.endSavingsMeter - this.startSavingsMeter : 0;
 		var meter = standardMeter + savingsMeter;
@@ -169,7 +169,9 @@ class Statistics {
 			$watts: watts,
 			$meter: meter
 		}, (err) => {
-			log.error('reset statistics : INSERT query failed; ', err);
+			if (err) {
+				log.error('reset statistics : INSERT query failed; ', err);
+			}
 		});
 		this.didStartOn = this.willEndOn;
 		this.secondsSwitchedOff = [0, 0, 0];
@@ -249,9 +251,9 @@ class Teleinfo extends EventEmitter {
 	constructor() {
 		super();
 		this.savedCommands = [
-		[ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET],
-		[ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET],
-		[ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET],
+			[ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET],
+			[ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET],
+			[ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET],
 		];
 		this.nbrSwitchedOff = [0, 0, 0]; 	// nombre de radiateurs delestés
 
@@ -453,50 +455,6 @@ class Teleinfo extends EventEmitter {
 			);
 		});
 		return p;
-	}
-
-	saveMessage(msg) {
-		/*
-		if (!('type' in msg)) {
-			log.error('no type to save message in db');
-			return;
-		}
-
-		var sqlParams = {
-			$type: msg.type,
-			$phase: null,
-			$period: null,
-		};
-
-		switch (msg.type) {
-			case 'current':
-			case 'switch':
-				sqlParams.$phase = msg.data.phase;
-			break;
-			
-			case 'meter':
-				sqlParams.$period = msg.data.period; 
-			break;
-
-			case 'power':
-			break;
-		}
-
-		var getQuery = "SELECT value FROM ticks WHERE type = $type AND phase = $phase AND period = $period ORDER BY rowid DESC LIMIT 1;";
-		memdb.get(getQuery, sqlParams, (err, row) => {
-			if (err) {
-				log.error('saveMessage error : SELECT query failed; ' + err);
-			} else if ((row == null) || (row.value != msg.value)) {
-				var insertQuery = "INSERT INTO ticks (type, phase, period, value) VALUES ($type, $phase, $period, $value);";
-				sqlParams.$value = msg.data.value,
-				memdb.run(insertQuery, sqlParams, (err) => {
-					if (err) {
-						log.error('saveMessage error : INSERT query failed; ' + err);
-					}
-				});
-			}
-		});	
-		*/
 	}
 
 
