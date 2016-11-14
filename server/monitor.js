@@ -9,24 +9,24 @@ var EventEmitter = require('events').EventEmitter;
 var log = require('./logger');
 
 
-var ARRET = 0b01;	// demi pos = arret
-var MARCHE = 0b00;	// ni pos ni neg = marche
-var ECO = 0b11;		// signal complet = eco
-var HORSGEL = 0b10;	// demi neg = hors gel
+const ARRET = 0b01;	// demi pos = arret
+const MARCHE = 0b00;	// ni pos ni neg = marche
+const ECO = 0b11;		// signal complet = eco
+const HORSGEL = 0b10;	// demi neg = hors gel
 
 
 class I2CController {
 
 	constructor() {
-		this.IODIRA = 0x00;	// Direction du port A (input/output)
-		this.IODIRB = 0x01;	// Direction du port B (input/output)
-		this.GPIOA = 0x12;   // Adresse du port A en mode input
-		this.GPIOB = 0x13;   // Adresse du port B en mode input
-		this.OLATA = 0x14;	// Adresse du port A en mode output
-		this.OLATB = 0x15;	// Adresse du port B en mode output
+		const IODIRA = 0x00;	// Direction du port A (input/output)
+		const IODIRB = 0x01;	// Direction du port B (input/output)
+		const GPIOA = 0x12;   // Adresse du port A en mode input
+		const GPIOB = 0x13;   // Adresse du port B en mode input
+		const OLATA = 0x14;	// Adresse du port A en mode output
+		const OLATB = 0x15;	// Adresse du port B en mode output
 
 		// Initialise les ports A et B de chaque module en mode output
-		for (phase = 1; phase <= 3; phase++) {
+		for (let phase = 1; phase <= 3; phase++) {
 			var device = this.getModuleAddress(phase - 1);
 			i2cBus.writeByteSync(device, IODIRA, 0b00000000);
 			i2cBus.writeByteSync(device, IODIRB, 0b00000000);
@@ -55,10 +55,10 @@ class I2CController {
 
 		// Toutes les broches sont utilisées en output sur le port A et sur le port B
 		// Lit les valeurs préexistantes sur le port A et sur le port B
-		i2cBus.writeByteSync(device, this.IODIRA, 0b00000000);
-		var portA = i2cBus.readByteSync(device, this.GPIOA);
-		i2cBus.writeByteSync(device, this.IODIRB, 0b00000000);
-		var portB = i2cBus.readByteSync(device, this.GPIOB);
+		i2cBus.writeByteSync(device, IODIRA, 0b00000000);
+		var portA = i2cBus.readByteSync(device, GPIOA);
+		i2cBus.writeByteSync(device, IODIRB, 0b00000000);
+		var portB = i2cBus.readByteSync(device, GPIOB);
 		
 		var commandsA = [];
 		var commandsB = [];
@@ -108,10 +108,10 @@ class I2CController {
 
 		// Modifie les valeurs sur le port A et sur le port B
 		log.debug("write phase #" + phase + " with wires " + wires + " : device = " + device + "; port A = " + portA + ", port B = " + portB);
-		i2cBus.writeByteSync(device, this.IODIRA, 0b00000000);
-		i2cBus.writeByteSync(device, this.OLATA, portA);
-		i2cBus.writeByteSync(device, this.IODIRB, 0b00000000);
-		i2cBus.writeByteSync(device, this.OLATB, portB);
+		i2cBus.writeByteSync(device, IODIRA, 0b00000000);
+		i2cBus.writeByteSync(device, OLATA, portA);
+		i2cBus.writeByteSync(device, IODIRB, 0b00000000);
+		i2cBus.writeByteSync(device, OLATB, portB);
 	}
 
 }
@@ -582,5 +582,4 @@ class Teleinfo extends EventEmitter {
 
 // exports a single instance
 var teleinfo = new Teleinfo();
-
 module.exports = teleinfo;
