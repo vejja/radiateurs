@@ -128,8 +128,10 @@ class Statistics {
 		this.secondsXwatts = 0;
 		this.lastWatt = 0;
 		this.timestampLastWatt = 0;
-		this.startMeter = null;
-		this.endMeter = null;
+		this.startStandardMeter = null;
+		this.endStandardMeter = null;
+		this.startSavingsMeter = null;
+		this.endStandardMeter = null;
 		this.willEndOn = new Date(this.didStartOn.getFullYear(), this.didStartOn.getMonth(), this.didStartOn.getDate(), this.didStartOn.getHours() + 1, 0, 0, 0);
 		this.interval = this.willEndOn - this.didStartOn;
 
@@ -150,7 +152,9 @@ class Statistics {
 		var int2 = this.secondsXintensity[1] / this.interval;
 		var int3 = this.secondsXintensity[2] / this.interval;
 		var watts = this.secondsXwatts / this.interval;
-		var meter = (this.endMeter !== null && this.startMeter !== null) ? this.endMeter - this.startMeter : 0;
+		var standardMeter = (this.endStandardMeter !== null && this.startStandardMeter !== null) ? this.endStandardMeter - this.startStandardMeter : 0;
+		var savingsMeter = (this.endSavingsMeter !== null && this.startSavingsMeter !== null) ? this.endSavingsMeter - this.startSavingsMeter : 0;
+		var meter = standardMeter + savingsMeter;
 		db.run("INSERT INTO statistics (year, month, date, hour, off1, off2, off3, int1, int2, int3, watts, meter) VALUES ($year, $month, $date, $hour, $off1, $off2, $off3, $int1, $int2, $int3, $watts, $meter);", {
 			$year: year,
 			$month: month,
@@ -164,6 +168,8 @@ class Statistics {
 			$int3: int3,
 			$watts: watts,
 			$meter: meter
+		}, (err) => {
+			log.error('reset statistics : INSERT query failed; ', err);
 		});
 		this.didStartOn = this.willEndOn;
 		this.secondsSwitchedOff = [0, 0, 0];
@@ -219,13 +225,19 @@ class Statistics {
 		log.debug(' avg watts : ', this.secondsXwatts * 1000 / (lastTimestamp - this.didStartOn.getTime()));
 	}
 
-	addMeter(meter) {
-		if (this.startMeter === null) {
-			this.startMeter = meter;
+	addStandardMeter(meter) {
+		if (this.startStandardMeter === null) {
+			this.startStandardMeter = meter;
 		}
-		this.endMeter = meter;
+		this.endStandardMeter = meter;
 	}
 	
+	addSavingsMeter(meter) {
+		if (this.startSavingsMeter === null) {
+			this.startSavingsMeter = meter;
+		}
+		this.endSavingsMeter = meter;
+	}
 }
 
 class Teleinfo extends EventEmitter {
@@ -297,7 +309,9 @@ class Teleinfo extends EventEmitter {
 				data: data
 			};
 			this.emit('notification', emitMessage);
-			this.saveMessage(emitMessage);
+			if (this.nbrSwitchedOff[phase - 1] === 0) {
+				this.statistics.rmSwitchOff(phase);
+			}
 		}
 	}
 
@@ -509,7 +523,7 @@ class Teleinfo extends EventEmitter {
 					value: amperes
 				};
 				this.emit('notification', emitMessage);
-				this.saveMessage(emitMessage);
+				this.statistics.addIntensity(amperes, phase);
 				
 				if (amperes >= 30) {
 					log.info('IINST phase ' + phase + ' : ' + amperes);
@@ -532,7 +546,7 @@ class Teleinfo extends EventEmitter {
 					value: amper_dep
 				};
 				this.emit('notification', emitMessage); 
-				this.saveMessage(emitMessage);
+				this.statistics.addIntensity(amper_dep, phase_dep);
 				log.info('ADIR phase ' + phase_dep + ' : ' + amper_dep);
 				this.switchOneOff(phase_dep);
 				return;
@@ -547,7 +561,7 @@ class Teleinfo extends EventEmitter {
 					value: hp
 				};
 				this.emit('notification', emitMessage); 
-				this.saveMessage(emitMessage);
+				this.statistics.addStandardMeter(hp);
 				log.debug('hp : ' + hp);
 				return;
 			}
@@ -561,7 +575,7 @@ class Teleinfo extends EventEmitter {
 					value: hc
 				};
 				this.emit('notification', emitMessage); 
-				this.saveMessage(emitMessage);
+				this.statistics.addSavingsMeter(hc);
 				log.debug('hc : ' + hc);
 				return;
 			}
