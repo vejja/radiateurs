@@ -179,7 +179,7 @@ class Statistics {
 		this.secondsXwatts = 0;
 		this.startMeter = this.endMeter;
 		this.endMeter = null;
-		this.willEndOn = new Date(this.didStartOn.getFullYear(), this.didStartOn.getMonth(), this.didStartOn.getDate(), this.didStartOn.getHours() + 1, 0, 0, 0);
+		this.willEndOn = new Date(this.didStartOn.getFullYear(), this.didStartOn.getMonth(), this.didStartOn.getDate(), this.didStartOn.getHours(), this.didStartOn.getMinutes() + 1, 0, 0);
 		this.interval = this.willEndOn - this.didStartOn;
 		setTimeout(() => {
 			this.reset();
