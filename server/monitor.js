@@ -1,10 +1,8 @@
 'use strict';
 
-var i2cBus = require('i2c-bus').openSync(1);
 var readline = require('readline');
 var fs = require('fs');
-var sqlite3 = require('sqlite3');
-var db = new sqlite3.Database('/home/pi/radiateurs/server/radiateurs.db');
+var db = new require('sqlite3').Database('/home/pi/radiateurs/server/radiateurs.db');
 var EventEmitter = require('events').EventEmitter;
 var log = require('./logger');
 
@@ -18,6 +16,7 @@ const HORSGEL = 0b10;	// demi neg = hors gel
 class I2CController {
 
 	constructor() {
+		const i2cBus = require('i2c-bus').openSync(1);
 		const IODIRA = 0x00;	// Direction du port A (input/output)
 		const IODIRB = 0x01;	// Direction du port B (input/output)
 		const GPIOA = 0x12;   // Adresse du port A en mode input
@@ -87,7 +86,7 @@ class I2CController {
 	// module : le numéro de module (0-2) correspondant aux cavaliers (000, 001, 010)
 	// wires : un array avec 8 valeurs, chacune d'entre elles peut être MARCHE, ARRET, ECO ou HORSGEL
 	writeStates(phase, wires) {
-		var device = getModuleAddress(phase - 1);
+		var device = this.getModuleAddress(phase - 1);
 
 		var portA = 0b00;
 		var portB = 0b00;
