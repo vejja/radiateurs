@@ -120,24 +120,29 @@ class Statistics {
 
 	constructor() {
 		this.didStartOn = new Date();
+		this.willEndOn = new Date(this.didStartOn.getFullYear(), this.didStartOn.getMonth(), this.didStartOn.getDate(), this.didStartOn.getHours() + 1, 0, 0, 0);
+		// this.interval = this.willEndOn - this.didStartOn;
+
 		this.secondsSwitchedOff = [0, 0, 0];
 		this.timestampLastSwitchedOff = [null, null, null];
+
 		this.secondsXintensity = [0, 0, 0];
-		this.lastIntensity = [0, 0, 0];
-		this.timestampLastIntensity = [0, 0, 0];
+		//this.lastIntensity = [0, 0, 0];
+		this.timestampLastIntensity = [this.didStartOn, this.didStartOn, this.didStartOn];
+
 		this.secondsXwatts = 0;
-		this.lastWatt = 0;
-		this.timestampLastWatt = 0;
+		//this.lastWatt = 0;
+		this.timestampLastWatt = this.didStartOn;
+
 		this.startStandardMeter = null;
 		this.endStandardMeter = null;
 		this.startSavingsMeter = null;
 		this.endStandardMeter = null;
-		this.willEndOn = new Date(this.didStartOn.getFullYear(), this.didStartOn.getMonth(), this.didStartOn.getDate(), this.didStartOn.getHours(), this.didStartOn.getMinutes() + 1, 0, 0);
-		this.interval = this.willEndOn - this.didStartOn;
 
-		setTimeout(() => {
-			this.reset();
-		}, this.interval);
+
+		// setTimeout(() => {
+		// 	this.reset();
+		// }, this.interval);
 	}
 
 	reset() {
@@ -148,10 +153,10 @@ class Statistics {
 		var off1 = this.secondsSwitchedOff[0];
 		var off2 = this.secondsSwitchedOff[1];
 		var off3 = this.secondsSwitchedOff[2];
-		var int1 = this.secondsXintensity[0] / this.interval * 1000;
-		var int2 = this.secondsXintensity[1] / this.interval * 1000;
-		var int3 = this.secondsXintensity[2] / this.interval * 1000;
-		var watts = this.secondsXwatts / this.interval * 1000;
+		var int1 = this.secondsXintensity[0] / (this.timestampLastIntensity[0] - this.didStartOn) * 1000;
+		var int2 = this.secondsXintensity[1] / (this.timestampLastIntensity[1] - this.didStartOn) * 1000;
+		var int3 = this.secondsXintensity[2] / (this.timestampLastIntensity[2] - this.didStartOn) * 1000;
+		var watts = this.secondsXwatts / (this.timestampLastWatt - this.didStartOn) * 1000;
 		var standardMeterDiff = (this.endStandardMeter !== null && this.startStandardMeter !== null) ? this.endStandardMeter - this.startStandardMeter : 0;
 		var savingsMeterDiff = (this.endSavingsMeter !== null && this.startSavingsMeter !== null) ? this.endSavingsMeter - this.startSavingsMeter : 0;
 		var meterDiff = standardMeterDiff + savingsMeterDiff;
@@ -173,22 +178,38 @@ class Statistics {
 				log.error('reset statistics : INSERT query failed; ', err);
 			}
 		});
+
 		this.didStartOn = this.willEndOn;
+		this.willEndOn = new Date(this.didStartOn.getFullYear(), this.didStartOn.getMonth(), this.didStartOn.getDate(), this.didStartOn.getHours(), this.didStartOn.getMinutes() + 1, 0, 0);
+		
 		this.secondsSwitchedOff = [0, 0, 0];
+		this.timestampLastSwitchedOff = [null, null, null];
+
 		this.secondsXintensity = [0, 0, 0];
+		this.timestampLastIntensity = [this.didStartOn, this.didStartOn, this.didStartOn];
+
 		this.secondsXwatts = 0;
+		this.timestampLastWatt = this.didStartOn;
+
 		this.startStandardMeter = this.endStandardMeter;
 		this.startSavingsMeter = this.endSavingsMeter;
-		this.endMeter = null;
-		this.willEndOn = new Date(this.didStartOn.getFullYear(), this.didStartOn.getMonth(), this.didStartOn.getDate(), this.didStartOn.getHours(), this.didStartOn.getMinutes() + 1, 0, 0);
-		this.interval = this.willEndOn - this.didStartOn;
-		setTimeout(() => {
+
+		// this.interval = this.willEndOn - this.didStartOn;
+		// setTimeout(() => {
+		// 	this.reset();
+		// }, this.interval);
+	}
+
+	getClearTimestamp() {
+		var newTimestamp = new Date();
+		if (newTimestamp > this.willEndOn) {
 			this.reset();
-		}, this.interval);
+		}
+		return newTimestamp;
 	}
 
 	addSwitchOff(phase) {
-		var newTimestamp = Date.now();
+		var newTimestamp = this.getClearTimestamp();
 		var lastTimestamp = this.timestampLastSwitchedOff[phase - 1];
 		if (lastTimestamp === null) {
 			this.timestampLastSwitchedOff[phase - 1] = newTimestamp;
@@ -201,7 +222,7 @@ class Statistics {
 	}
 
 	rmSwitchOff(phase) {
-		var newTimestamp = Date.now();
+		var newTimestamp = this.getClearTimestamp();
 		var lastTimestamp = this.timestampLastSwitchedOff[phase - 1];
 		var interval = newTimestamp - lastTimestamp;
 		this.secondsSwitchedOff[phase - 1] += (interval / 1000);
@@ -209,28 +230,27 @@ class Statistics {
 	}
 
 	addIntensity(intensity, phase) {
-		var newTimestamp = Date.now();
+		var newTimestamp = this.getClearTimestamp();
 		var lastTimestamp = this.timestampLastIntensity[phase - 1];
 		var interval = newTimestamp - lastTimestamp;
-		this.secondsXintensity[phase - 1] += (interval / 1000) * this.lastIntensity[phase - 1];
+		this.secondsXintensity[phase - 1] += (interval / 1000) * intensity;
 		this.timestampLastIntensity[phase - 1] = newTimestamp;
-		this.lastIntensity[phase - 1] = intensity;
 		log.debug('total seconds x intensity : ', this.secondsXintensity[phase - 1]);
-		log.debug('avg intensity : ', this.secondsXintensity[phase - 1] * 1000 / (lastTimestamp - this.didStartOn.getTime()));
+		log.debug('avg intensity : ', this.secondsXintensity[phase - 1] * 1000 / (lastTimestamp - this.didStartOn));
 	}
 
 	addPower(watt) {
-		var newTimestamp = Date.now();
+		var newTimestamp = this.getClearTimestamp();
 		var lastTimestamp = this.timestampLastWatt;
 		var interval = newTimestamp - lastTimestamp;
-		this.secondsXwatts += (interval / 1000) * this.lastWatt;
+		this.secondsXwatts += (interval / 1000) * watt;
 		this.timestampLastWatt = newTimestamp;
-		this.lastWatt = watt;
 		log.debug('total seconds x watts : ', this.secondsXwatts);
-		log.debug('avg watts : ', this.secondsXwatts * 1000 / (lastTimestamp - this.didStartOn.getTime()));
+		log.debug('avg watts : ', this.secondsXwatts * 1000 / (lastTimestamp - this.didStartOn));
 	}
 
 	addStandardMeter(meter) {
+		this.getClearTimestamp();
 		if (this.startStandardMeter === null) {
 			this.startStandardMeter = meter;
 		}
@@ -239,6 +259,7 @@ class Statistics {
 	}
 	
 	addSavingsMeter(meter) {
+		this.getClearTimestamp();
 		if (this.startSavingsMeter === null) {
 			this.startSavingsMeter = meter;
 		}
