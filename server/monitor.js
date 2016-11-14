@@ -119,33 +119,12 @@ class I2CController {
 class Statistics {
 
 	constructor() {
-		this.didStartOn = new Date();
-		this.willEndOn = new Date(this.didStartOn.getFullYear(), this.didStartOn.getMonth(), this.didStartOn.getDate(), this.didStartOn.getHours() + 1, 0, 0, 0);
-		// this.interval = this.willEndOn - this.didStartOn;
-
-		this.secondsSwitchedOff = [0, 0, 0];
-		this.timestampLastSwitchedOff = [null, null, null];
-
-		this.secondsXintensity = [0, 0, 0];
-		//this.lastIntensity = [0, 0, 0];
-		this.timestampLastIntensity = [this.didStartOn, this.didStartOn, this.didStartOn];
-
-		this.secondsXwatts = 0;
-		//this.lastWatt = 0;
-		this.timestampLastWatt = this.didStartOn;
-
-		this.startStandardMeter = null;
 		this.endStandardMeter = null;
-		this.startSavingsMeter = null;
 		this.endStandardMeter = null;
-
-
-		// setTimeout(() => {
-		// 	this.reset();
-		// }, this.interval);
+		this.resetTimers();
 	}
 
-	reset() {
+	flushToDb() {
 		var year = this.didStartOn.getFullYear();
 		var month = this.didStartOn.getMonth();
 		var date = this.didStartOn.getDate();
@@ -178,7 +157,9 @@ class Statistics {
 				log.error('reset statistics : INSERT query failed; ', err);
 			}
 		});
+	}
 
+	resetTimers() {
 		this.didStartOn = this.willEndOn;
 		this.willEndOn = new Date(this.didStartOn.getFullYear(), this.didStartOn.getMonth(), this.didStartOn.getDate(), this.didStartOn.getHours(), this.didStartOn.getMinutes() + 1, 0, 0);
 		
@@ -193,17 +174,13 @@ class Statistics {
 
 		this.startStandardMeter = this.endStandardMeter;
 		this.startSavingsMeter = this.endSavingsMeter;
-
-		// this.interval = this.willEndOn - this.didStartOn;
-		// setTimeout(() => {
-		// 	this.reset();
-		// }, this.interval);
 	}
 
 	getClearTimestamp() {
 		var newTimestamp = new Date();
 		if (newTimestamp > this.willEndOn) {
-			this.reset();
+			this.flushToDb();
+			this.resetTimers();
 		}
 		return newTimestamp;
 	}
