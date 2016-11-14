@@ -2,7 +2,8 @@
 
 var readline = require('readline');
 var fs = require('fs');
-var db = new require('sqlite3').Database('/home/pi/radiateurs/server/radiateurs.db');
+var sqlite3 = require('sqlite3');
+var db = new sqlite3.Database('/home/pi/radiateurs/server/radiateurs.db');
 var EventEmitter = require('events').EventEmitter;
 var log = require('./logger');
 
