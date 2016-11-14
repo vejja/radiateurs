@@ -145,16 +145,16 @@ class Statistics {
 		var month = this.didStartOn.getMonth();
 		var date = this.didStartOn.getDate();
 		var hour = this.didStartOn.getHours(); 
-		var off1 = this.secondsSwitchedOff[0] / this.interval * 1000;
-		var off2 = this.secondsSwitchedOff[1] / this.interval * 1000;
-		var off3 = this.secondsSwitchedOff[2] / this.interval * 1000;
+		var off1 = this.secondsSwitchedOff[0];
+		var off2 = this.secondsSwitchedOff[1];
+		var off3 = this.secondsSwitchedOff[2];
 		var int1 = this.secondsXintensity[0] / this.interval * 1000;
 		var int2 = this.secondsXintensity[1] / this.interval * 1000;
 		var int3 = this.secondsXintensity[2] / this.interval * 1000;
 		var watts = this.secondsXwatts / this.interval * 1000;
-		var standardMeter = (this.endStandardMeter !== null && this.startStandardMeter !== null) ? this.endStandardMeter - this.startStandardMeter : 0;
-		var savingsMeter = (this.endSavingsMeter !== null && this.startSavingsMeter !== null) ? this.endSavingsMeter - this.startSavingsMeter : 0;
-		var meter = standardMeter + savingsMeter;
+		var standardMeterDiff = (this.endStandardMeter !== null && this.startStandardMeter !== null) ? this.endStandardMeter - this.startStandardMeter : 0;
+		var savingsMeterDiff = (this.endSavingsMeter !== null && this.startSavingsMeter !== null) ? this.endSavingsMeter - this.startSavingsMeter : 0;
+		var meterDiff = standardMeterDiff + savingsMeterDiff;
 		db.run("INSERT INTO statistics (year, month, date, hour, off1, off2, off3, int1, int2, int3, watts, meter) VALUES ($year, $month, $date, $hour, $off1, $off2, $off3, $int1, $int2, $int3, $watts, $meter);", {
 			$year: year,
 			$month: month,
@@ -167,7 +167,7 @@ class Statistics {
 			$int2: int2,
 			$int3: int3,
 			$watts: watts,
-			$meter: meter
+			$meter: meterDiff
 		}, (err) => {
 			if (err) {
 				log.error('reset statistics : INSERT query failed; ', err);
@@ -177,7 +177,8 @@ class Statistics {
 		this.secondsSwitchedOff = [0, 0, 0];
 		this.secondsXintensity = [0, 0, 0];
 		this.secondsXwatts = 0;
-		this.startMeter = this.endMeter;
+		this.startStandardMeter = this.endStandardMeter;
+		this.startSavingsMeter = this.endSavingsMeter;
 		this.endMeter = null;
 		this.willEndOn = new Date(this.didStartOn.getFullYear(), this.didStartOn.getMonth(), this.didStartOn.getDate(), this.didStartOn.getHours(), this.didStartOn.getMinutes() + 1, 0, 0);
 		this.interval = this.willEndOn - this.didStartOn;
