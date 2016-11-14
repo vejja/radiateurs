@@ -216,7 +216,7 @@ class Statistics {
 		this.timestampLastWatt = newTimestamp;
 		this.lastWatt = watt;
 		log.debug('total seconds x watts : ', this.secondsXwatts);
-		log.debug(' avg watts : ', this.secondsXwatts / (newTimestamp - this.didStartOn.getTime() / 1000));
+		log.debug(' avg watts : ', this.secondsXwatts * 1000 / (newTimestamp - this.didStartOn.getTime()));
 	}
 
 	addMeter(meter) {
