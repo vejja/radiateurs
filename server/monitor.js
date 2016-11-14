@@ -17,19 +17,19 @@ const HORSGEL = 0b10;	// demi neg = hors gel
 class I2CController {
 
 	constructor() {
-		const i2cBus = require('i2c-bus').openSync(1);
-		const IODIRA = 0x00;	// Direction du port A (input/output)
-		const IODIRB = 0x01;	// Direction du port B (input/output)
-		const GPIOA = 0x12;   // Adresse du port A en mode input
-		const GPIOB = 0x13;   // Adresse du port B en mode input
-		const OLATA = 0x14;	// Adresse du port A en mode output
-		const OLATB = 0x15;	// Adresse du port B en mode output
+		this.i2cBus = require('i2c-bus').openSync(1);
+		this.IODIRA = 0x00;	// Direction du port A (input/output)
+		this.IODIRB = 0x01;	// Direction du port B (input/output)
+		this.GPIOA = 0x12;   // Adresse du port A en mode input
+		this.GPIOB = 0x13;   // Adresse du port B en mode input
+		this.OLATA = 0x14;	// Adresse du port A en mode output
+		this.OLATB = 0x15;	// Adresse du port B en mode output
 
 		// Initialise les ports A et B de chaque module en mode output
 		for (let phase = 1; phase <= 3; phase++) {
 			var device = this.getModuleAddress(phase - 1);
-			i2cBus.writeByteSync(device, IODIRA, 0b00000000);
-			i2cBus.writeByteSync(device, IODIRB, 0b00000000);
+			this.i2cBus.writeByteSync(device, this.IODIRA, 0b00000000);
+			this.i2cBus.writeByteSync(device, this.IODIRB, 0b00000000);
 		}
 	}
 	// Adresse du module I2C sur lequel communiquer
@@ -44,26 +44,26 @@ class I2CController {
 		// (Attention sur la carte pilote j'ai inversé, A0 est à gauche et A2 à droite
 		// quand les connecteurs I2C sont en haut sur le rail)
 		return (0b0100000 | i2cModule);
-	};
+	}
 
 	// Récupère l'état des 8 radiateurs sur un module donnée
 	// module : le numéro du module (0-2)
 	// Renvoie un array de 8 valeurs, chacune d'entre elles peut être ARRET, MARCHE, ECO ou HORSGEL
 
 	readStates(phase) {
-		var device = getModuleAddress(phase - 1);
+		var device = this.getModuleAddress(phase - 1);
 
 		// Toutes les broches sont utilisées en output sur le port A et sur le port B
 		// Lit les valeurs préexistantes sur le port A et sur le port B
-		i2cBus.writeByteSync(device, IODIRA, 0b00000000);
-		var portA = i2cBus.readByteSync(device, GPIOA);
-		i2cBus.writeByteSync(device, IODIRB, 0b00000000);
-		var portB = i2cBus.readByteSync(device, GPIOB);
+		this.i2cBus.writeByteSync(device, this.IODIRA, 0b00000000);
+		var portA = this.i2cBus.readByteSync(device, GPIOA);
+		this.i2cBus.writeByteSync(device, this.IODIRB, 0b00000000);
+		var portB = this.i2cBus.readByteSync(device, GPIOB);
 		
 		var commandsA = [];
 		var commandsB = [];
 
-		for (i=0; i<4; i++) {
+		for (let i=0; i<4; i++) {
 			// Lit les 2 derniers bits sur chaque port
 			var commandA = portA & 0b00000011;
 			var commandB = portB & 0b00000011;
@@ -81,7 +81,7 @@ class I2CController {
 		var wires = commandsA.concat(commandsB);
 		log.debug("read phase #" + phase + " and wires " + wires + ": device = " + device + "; portA = " + portA + ", portB = " + portB);
 		return wires;
-	};
+	}
 
 	// Change l'état des fils pilotes
 	// module : le numéro de module (0-2) correspondant aux cavaliers (000, 001, 010)
@@ -92,7 +92,7 @@ class I2CController {
 		var portA = 0b00;
 		var portB = 0b00;
 
-		for (i=3; i>=0; i--) {
+		for (let i=3; i>=0; i--) {
 			// Lit les commandes à inscrire sur chaque port en commençant par les fils les plus hauts
 			var commandA = wires[i];
 			var commandB = wires[i+4];
@@ -108,10 +108,10 @@ class I2CController {
 
 		// Modifie les valeurs sur le port A et sur le port B
 		log.debug("write phase #" + phase + " with wires " + wires + " : device = " + device + "; port A = " + portA + ", port B = " + portB);
-		i2cBus.writeByteSync(device, IODIRA, 0b00000000);
-		i2cBus.writeByteSync(device, OLATA, portA);
-		i2cBus.writeByteSync(device, IODIRB, 0b00000000);
-		i2cBus.writeByteSync(device, OLATB, portB);
+		this.i2cBus.writeByteSync(device, this.IODIRA, 0b00000000);
+		this.i2cBus.writeByteSync(device, this.OLATA, portA);
+		this.i2cBus.writeByteSync(device, this.IODIRB, 0b00000000);
+		this.i2cBus.writeByteSync(device, this.OLATB, portB);
 	}
 
 }
@@ -151,10 +151,11 @@ class Statistics {
 		var int3 = this.secondsXintensity[2] / this.interval;
 		var watts = this.secondsXwatts / this.interval;
 		var meter = (this.endMeter != null && this.startMeter != null) ? this.endMeter - this.startMeter : 0;
-		db.run("INSERT INTO statistics (year, month, date, off1, off2, off3, int1, int2, int3, watts, meter) VALUES ($year, $month, $date, $off1, $off2, $off3, $int1, $int2, $int3, $watts, $meter);", {
+		db.run("INSERT INTO statistics (year, month, date, hour, off1, off2, off3, int1, int2, int3, watts, meter) VALUES ($year, $month, $date, $hour, $off1, $off2, $off3, $int1, $int2, $int3, $watts, $meter);", {
 			$year: year,
 			$month: month,
 			$date: date,
+			$hour: hour,
 			$off1 : off1,
 			$off2: off2,
 			$off3: off3,
@@ -175,12 +176,12 @@ class Statistics {
 		setTimeout(() => {
 			this.reset();
 		}, this.interval);
-	};
+	}
 
 	addSwitchOff(phase) {
 		var newTimestamp = Date.now();
 		var lastTimestamp = this.timestampLastSwitchedOff[phase - 1];
-		if (lastTimestamp == null) {
+		if (lastTimestamp === null) {
 			this.timestampLastSwitchedOff[phase - 1] = newTimestamp;
 			return;
 		}
@@ -217,7 +218,7 @@ class Statistics {
 	}
 
 	addMeter(meter) {
-		if (this.startMeter == null) {
+		if (this.startMeter === null) {
 			this.startMeter = meter;
 		}
 		this.endMeter = meter;
@@ -296,7 +297,7 @@ class Teleinfo extends EventEmitter {
 			this.emit('notification', emitMessage);
 			this.saveMessage(emitMessage);
 		}
-	};
+	}
 
 	// Initialise les ordres GIFAM à partir de la base de données
 	initHeatersFromDatabase() {
@@ -328,12 +329,12 @@ class Teleinfo extends EventEmitter {
 					this.i2cController.writeStates(phaseIndex + 1, newStates);
 				});
 
-				for (phase = 1; phase <= 3; ++phase) {
+				for (let phase = 1; phase <= 3; ++phase) {
 					log.info("read phase #" + phase + " : " + this.i2cController.readStates(phase));
 				}
 			}
 		);
-	};
+	}
 
 	getCommandForHeater(phase, wire) {
 		var p = new Promise(function(resolve, reject) {
@@ -356,7 +357,7 @@ class Teleinfo extends EventEmitter {
 			);
 		});
 		return p;
-	};
+	}
 
 	setCommandForHeater(command, id) {
 		if (command < 0 || command > 3) {
@@ -382,7 +383,7 @@ class Teleinfo extends EventEmitter {
 				}
 			}
 		);
-	};
+	}
 
 	setCommandForAllHeaters(command) {
 		if (command < 0 || command > 3) {
@@ -408,7 +409,7 @@ class Teleinfo extends EventEmitter {
 				}
 			}
 		);
-	};
+	}
 
 
 	getHeatersn() {
@@ -432,7 +433,7 @@ class Teleinfo extends EventEmitter {
 			);
 		});
 		return p;
-	};
+	}
 
 	saveMessage(msg) {
 		/*
@@ -476,7 +477,7 @@ class Teleinfo extends EventEmitter {
 			}
 		});	
 		*/
-	};
+	}
 
 
 	infiniteReading() {
@@ -486,9 +487,9 @@ class Teleinfo extends EventEmitter {
 			input: fs.createReadStream('/dev/ttyAMA0', {autoClose: false}),
 		});
 
-		lineReader.on('close', function() {
+		lineReader.on('close', () => {
 			log.info('********** LINE READER CLOSED');
-			infiniteReading();
+			this.infiniteReading();
 		});
 
 		lineReader.on('line', line => {
@@ -577,7 +578,7 @@ class Teleinfo extends EventEmitter {
 				return;
 			}
 		});
-	};
+	}
 }
 
 // exports a single instance
