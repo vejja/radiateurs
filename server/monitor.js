@@ -119,9 +119,22 @@ class I2CController {
 class Statistics {
 
 	constructor() {
+		this.didStartOn = new Date();
+		this.willEndOn = new Date(this.didStartOn.getFullYear(), this.didStartOn.getMonth(), this.didStartOn.getDate(), this.didStartOn.getHours() + 1, 0, 0, 0);
+
+		this.secondsSwitchedOff = [0, 0, 0];
+		this.timestampLastSwitchedOff = [null, null, null];
+
+		this.secondsXintensity = [0, 0, 0];
+		this.timestampLastIntensity = [this.didStartOn, this.didStartOn, this.didStartOn];
+
+		this.secondsXwatts = 0;
+		this.timestampLastWatt = this.didStartOn;
+
+		this.startStandardMeter = null;
 		this.endStandardMeter = null;
+		this.startSavingsMeter = null;
 		this.endStandardMeter = null;
-		this.resetTimers();
 	}
 
 	flushToDb() {
