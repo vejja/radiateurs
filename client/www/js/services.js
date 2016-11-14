@@ -23,7 +23,7 @@ angular.module('app.services', [])
 	};
 	system.power = undefined;
 	system.powerChart = [
-		{label: 'power', values:[{}]}
+		{label: 'power', values:[]}
 	];
 	system.powerStream = [{time:0, y:0}];					// object {time, value}
 	system.connection = Connection;

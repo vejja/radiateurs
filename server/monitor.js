@@ -3,8 +3,9 @@ var readline = require('readline');
 var fs = require('fs');
 var sqlite3 = require('sqlite3');
 var db = new sqlite3.Database('/home/pi/radiateurs/server/radiateurs.db');
-var events = require('events');
+var EventEmitter = require('events').EventEmitter;
 var log = require('./logger');
+
 
 var ARRET = 0b01;	// demi pos = arret
 var MARCHE = 0b00;	// ni pos ni neg = marche
@@ -12,18 +13,26 @@ var ECO = 0b11;		// signal complet = eco
 var HORSGEL = 0b10;	// demi neg = hors gel
 
 
-function I2CController() {
+class I2CController {
 
-	var IODIRA = 0x00;	// Direction du port A (input/output)
-	var IODIRB = 0x01;	// Direction du port B (input/output)
-	var GPIOA = 0x12;   // Adresse du port A en mode input
-	var GPIOB = 0x13;   // Adresse du port B en mode input
-	var OLATA = 0x14;	// Adresse du port A en mode output
-	var OLATB = 0x15;	// Adresse du port B en mode output
+	constructor() {
+		this.IODIRA = 0x00;	// Direction du port A (input/output)
+		this.IODIRB = 0x01;	// Direction du port B (input/output)
+		this.GPIOA = 0x12;   // Adresse du port A en mode input
+		this.GPIOB = 0x13;   // Adresse du port B en mode input
+		this.OLATA = 0x14;	// Adresse du port A en mode output
+		this.OLATB = 0x15;	// Adresse du port B en mode output
 
+		// Initialise les ports A et B de chaque module en mode output
+		for (phase = 1; phase <= 3; phase++) {
+			var device = this.getModuleAddress(phase - 1);
+			i2cBus.writeByteSync(device, IODIRA, 0b00000000);
+			i2cBus.writeByteSync(device, IODIRB, 0b00000000);
+		}
+	}
 	// Adresse du module I2C sur lequel communiquer
 	// numModule : le numero 0, 1 ou 2
-	var getModuleAddress = function(i2cModule) {
+	getModuleAddress(i2cModule) {
 		if (i2cModule < 0b000 || i2cModule > 0b010)
 			return false;
 		// L'adresse du MCP23017 est construite sur 7 bits : 0 1 0 0 A2 A1 A0
@@ -39,15 +48,15 @@ function I2CController() {
 	// module : le numéro du module (0-2)
 	// Renvoie un array de 8 valeurs, chacune d'entre elles peut être ARRET, MARCHE, ECO ou HORSGEL
 
-	this.readStates = function (phase) {
+	readStates(phase) {
 		var device = getModuleAddress(phase - 1);
 
 		// Toutes les broches sont utilisées en output sur le port A et sur le port B
 		// Lit les valeurs préexistantes sur le port A et sur le port B
-		i2cBus.writeByteSync(device, IODIRA, 0b00000000);
-		var portA = i2cBus.readByteSync(device, GPIOA);
-		i2cBus.writeByteSync(device, IODIRB, 0b00000000);
-		var portB = i2cBus.readByteSync(device, GPIOB);
+		i2cBus.writeByteSync(device, this.IODIRA, 0b00000000);
+		var portA = i2cBus.readByteSync(device, this.GPIOA);
+		i2cBus.writeByteSync(device, this.IODIRB, 0b00000000);
+		var portB = i2cBus.readByteSync(device, this.GPIOB);
 		
 		var commandsA = [];
 		var commandsB = [];
@@ -75,7 +84,7 @@ function I2CController() {
 	// Change l'état des fils pilotes
 	// module : le numéro de module (0-2) correspondant aux cavaliers (000, 001, 010)
 	// wires : un array avec 8 valeurs, chacune d'entre elles peut être MARCHE, ARRET, ECO ou HORSGEL
-	this.writeStates = function(phase, wires) {
+	writeStates(phase, wires) {
 		var device = getModuleAddress(phase - 1);
 
 		var portA = 0b00;
@@ -97,38 +106,146 @@ function I2CController() {
 
 		// Modifie les valeurs sur le port A et sur le port B
 		log.debug("write phase #" + phase + " with wires " + wires + " : device = " + device + "; port A = " + portA + ", port B = " + portB);
-		i2cBus.writeByteSync(device, IODIRA, 0b00000000);
-		i2cBus.writeByteSync(device, OLATA, portA);
-		i2cBus.writeByteSync(device, IODIRB, 0b00000000);
-		i2cBus.writeByteSync(device, OLATB, portB);
+		i2cBus.writeByteSync(device, this.IODIRA, 0b00000000);
+		i2cBus.writeByteSync(device, this.OLATA, portA);
+		i2cBus.writeByteSync(device, this.IODIRB, 0b00000000);
+		i2cBus.writeByteSync(device, this.OLATB, portB);
 	}
 
-	// Initialise les ports A et B de chaque module en mode output
-	for (phase = 1; phase <= 3; phase++) {
-		var device = getModuleAddress(phase - 1);
-		i2cBus.writeByteSync(device, IODIRA, 0b00000000);
-		i2cBus.writeByteSync(device, IODIRB, 0b00000000);
-	}
 }
 
-function Teleinfo() {
-	events.EventEmitter.call(this); 	// call parent class constructor
+class Statistics {
 
-	this.savedCommands = [
-		[ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET],
-		[ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET],
-		[ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET],
-	];
-	this.nbrSwitchedOff = [0, 0, 0]; 	// nombre de radiateurs delestés
-		
-	this.i2cController = new I2CController();
+	constructor() {
+		this.didStartOn = new Date();
+		this.secondsSwitchedOff = [0, 0, 0];
+		this.timestampLastSwitchedOff = [null, null, null];
+		this.secondsXintensity = [0, 0, 0];
+		this.lastIntensity = [0, 0, 0];
+		this.timestampLastIntensity = [0, 0, 0];
+		this.secondsXwatts = 0;
+		this.lastWatt = 0;
+		this.timestampLastWatt = 0;
+		this.startMeter = null;
+		this.endMeter = null;
+		this.willEndOn = new Date(this.didStartOn.getFullYear(), this.didStartOn.getMonth(), this.didStartOn.getDate(), this.didStartOn.getHours() + 1, 0, 0, 0);
+		this.interval = this.willEndOn - this.didStartOn;
+
+		setTimeout(() => {
+			this.reset();
+		}, this.interval);
+	}
+
+	reset() {
+		var year = this.didStartOn.getFullYear();
+		var month = this.didStartOn.getMonth();
+		var date = this.didStartOn.getDate();
+		var hour = this.didStartOn.getHours(); 
+		var off1 = this.secondsSwitchedOff[0] / this.interval;
+		var off2 = this.secondsSwitchedOff[1] / this.interval;
+		var off3 = this.secondsSwitchedOff[2] / this.interval;
+		var int1 = this.secondsXintensity[0] / this.interval;
+		var int2 = this.secondsXintensity[1] / this.interval;
+		var int3 = this.secondsXintensity[2] / this.interval;
+		var watts = this.secondsXwatts / this.interval;
+		var meter = (this.endMeter != null && this.startMeter != null) ? this.endMeter - this.startMeter : 0;
+		db.run("INSERT INTO statistics (year, month, date, off1, off2, off3, int1, int2, int3, watts, meter) VALUES ($year, $month, $date, $off1, $off2, $off3, $int1, $int2, $int3, $watts, $meter);", {
+			$year: year,
+			$month: month,
+			$date: date,
+			$off1 : off1,
+			$off2: off2,
+			$off3: off3,
+			$int1: int1,
+			$int2: int2,
+			$int3: int3,
+			$watts: watts,
+			$meter: meter
+		});
+		this.didStartOn = this.willEndOn;
+		this.secondsSwitchedOff = [0, 0, 0];
+		this.secondsXintensity = [0, 0, 0];
+		this.secondsXwatts = 0;
+		this.startMeter = this.endMeter;
+		this.endMeter = null;
+		this.willEndOn = new Date(this.didStartOn.getFullYear(), this.didStartOn.getMonth(), this.didStartOn.getDate(), this.didStartOn.getHours() + 1, 0, 0, 0);
+		this.interval = this.willEndOn - this.didStartOn;
+		setTimeout(() => {
+			this.reset();
+		}, this.interval);
+	};
+
+	addSwitchOff(phase) {
+		var newTimestamp = Date.now();
+		var lastTimestamp = this.timestampLastSwitchedOff[phase - 1];
+		if (lastTimestamp == null) {
+			this.timestampLastSwitchedOff[phase - 1] = newTimestamp;
+			return;
+		}
+		var interval = newTimestamp - lastTimestamp;
+		this.secondsSwitchedOff[phase - 1] += (interval / 1000);
+		this.timestampLastSwitchedOff[phase - 1] = newTimestamp;
+		return;
+	}
+
+	rmSwitchOff(phase) {
+		var newTimestamp = Date.now();
+		var lastTimestamp = this.timestampLastSwitchedOff[phase - 1];
+		var interval = newTimestamp - lastTimestamp;
+		this.secondsSwitchedOff[phase - 1] += (interval / 1000);
+		this.timestampLastSwitchedOff[phase - 1] = null;
+	}
+
+	addIntensity(intensity, phase) {
+		var newTimestamp = Date.now();
+		var lastTimestamp = this.timestampLastIntensity[phase - 1];
+		var interval = newTimestamp - lastTimestamp;
+		this.secondsXintensity[phase - 1] += (interval / 1000) * this.lastIntensity[phase - 1];
+		this.timestampLastIntensity[phase - 1] = newTimestamp;
+		this.lastIntensity[phase - 1] = intensity;
+	}
+
+	addPower(watt) {
+		var newTimestamp = Date.now();
+		var lastTimestamp = this.timestampLastWatt;
+		var interval = newTimestamp - lastTimestamp;
+		this.secondsXwatts += (interval / 1000) * this.lastWatt;
+		this.timestampLastWatt = newTimestamp;
+		this.lastWatt = watt;
+	}
+
+	addMeter(meter) {
+		if (this.startMeter == null) {
+			this.startMeter = meter;
+		}
+		this.endMeter = meter;
+	}
 	
-	var self = this;
+}
 
-	var switchOneOff = (phase) => {
-		var limitIndex = 7 - self.nbrSwitchedOff[phase - 1];
+class Teleinfo extends EventEmitter {
+
+	constructor() {
+		super();
+		this.savedCommands = [
+		[ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET],
+		[ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET],
+		[ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET, ARRET],
+		];
+		this.nbrSwitchedOff = [0, 0, 0]; 	// nombre de radiateurs delestés
+
+		this.statistics = new Statistics();
+		this.i2cController = new I2CController();
+
+
+		this.initHeatersFromDatabase();
+		this.infiniteReading();
+	}
+
+	switchOneOff(phase) {
+		var limitIndex = 7 - this.nbrSwitchedOff[phase - 1];
 		if (limitIndex >= 0) {
-			var savedStates = self.savedCommands[phase - 1];
+			var savedStates = this.savedCommands[phase - 1];
 			var newStates = savedStates.map((state, index) => {
 				if (index >= limitIndex) {
 					return ARRET;
@@ -136,26 +253,26 @@ function Teleinfo() {
 					return state;
 				}
 			});
-			self.i2cController.writeStates(phase, newStates);
-			++self.nbrSwitchedOff[phase - 1];
-			log.debug('phase ' + phase + '; nbr delestés ' + self.nbrSwitchedOff[phase - 1]);
+			this.i2cController.writeStates(phase, newStates);
+			++this.nbrSwitchedOff[phase - 1];
+			log.debug('phase ' + phase + '; nbr delestés ' + this.nbrSwitchedOff[phase - 1]);
 			var data = {
 				phase: phase,
-				value: self.nbrSwitchedOff[phase - 1]
+				value: this.nbrSwitchedOff[phase - 1]
 			};
 			var emitMessage = {
 				type: 'switch',
 				data: data
 			};
-			self.emit('notification', emitMessage);
-			self.saveMessage(emitMessage);
+			this.emit('notification', emitMessage);
+			this.statistics.addSwitchOff(phase);
 		}
 	};
 
-	var switchOneBack = (phase) => {
-		var limitIndex = 8 - self.nbrSwitchedOff[phase - 1];
+	switchOneBack(phase) {
+		var limitIndex = 8 - this.nbrSwitchedOff[phase - 1];
 		if (limitIndex <= 7) {
-			var savedStates = self.savedCommands[phase - 1];
+			var savedStates = this.savedCommands[phase - 1];
 			var newStates = savedStates.map((state, index) => {
 				if (index > limitIndex) {
 					return ARRET;
@@ -163,24 +280,24 @@ function Teleinfo() {
 					return state;
 				}
 			});
-			self.i2cController.writeStates(phase, newStates);
-			--self.nbrSwitchedOff[phase - 1];
-			log.debug('phase ' + phase + '; nbr delestés ' + self.nbrSwitchedOff[phase - 1]);
+			this.i2cController.writeStates(phase, newStates);
+			--this.nbrSwitchedOff[phase - 1];
+			log.debug('phase ' + phase + '; nbr delestés ' + this.nbrSwitchedOff[phase - 1]);
 			var data = {
 				phase: phase,
-				value: self.nbrSwitchedOff[phase - 1]
+				value: this.nbrSwitchedOff[phase - 1]
 			};
 			var emitMessage = {
 				type: 'switch',
 				data: data
 			};
-			self.emit('notification', emitMessage);
-			self.saveMessage(emitMessage);
+			this.emit('notification', emitMessage);
+			this.saveMessage(emitMessage);
 		}
 	};
 
 	// Initialise les ordres GIFAM à partir de la base de données
-	var initHeatersFromDatabase = function() {
+	initHeatersFromDatabase() {
 		db.all(
 			"SELECT * FROM dashboard ORDER BY phase, wire ASC",
 			[], 
@@ -192,13 +309,13 @@ function Teleinfo() {
 
 				// Enregistre les valeurs de la DB dans la table en memoire
 				rows.forEach(row => {
-					self.savedCommands[row.phase - 1][row.wire - 1] = row.command;
+					this.savedCommands[row.phase - 1][row.wire - 1] = row.command;
 				});
 				
 				// Reload les valeurs sur les modules I2C
 				// En prenant en compte les radiateurs déjà en cours de délestage
-				self.savedCommands.forEach((savedStates, phaseIndex) => {
-					var limitIndex = 7 - self.nbrSwitchedOff[phaseIndex];
+				this.savedCommands.forEach((savedStates, phaseIndex) => {
+					var limitIndex = 7 - this.nbrSwitchedOff[phaseIndex];
 					var newStates = savedStates.map((state, wireIndex) => {
 						if (wireIndex > limitIndex) {
 							return ARRET;
@@ -206,17 +323,17 @@ function Teleinfo() {
 							return state;
 						}
 					});
-					self.i2cController.writeStates(phaseIndex + 1, newStates);
+					this.i2cController.writeStates(phaseIndex + 1, newStates);
 				});
 
 				for (phase = 1; phase <= 3; ++phase) {
-					log.info("read phase #" + phase + " : " + self.i2cController.readStates(phase));
+					log.info("read phase #" + phase + " : " + this.i2cController.readStates(phase));
 				}
 			}
 		);
 	};
 
-	var getCommandForHeater = function(phase, wire) {
+	getCommandForHeater(phase, wire) {
 		var p = new Promise(function(resolve, reject) {
 			db.get(
 				"SELECT command FROM dashboard WHERE phase = ? AND wire = ?",
@@ -239,9 +356,7 @@ function Teleinfo() {
 		return p;
 	};
 
-	this.getCommandForHeater = getCommandForHeater;
-
-	this.setCommandForHeater = function(command, id) {
+	setCommandForHeater(command, id) {
 		if (command < 0 || command > 3) {
 			log.error('setCommandForHeater: wrong command');
 			return;
@@ -251,10 +366,10 @@ function Teleinfo() {
 			[command, id],
 			(err) => {
 				if (!err) {
-					initHeatersFromDatabase();
-					self.getHeaters()
+					this.initHeatersFromDatabase();
+					this.getHeaters()
 					.then(function(reply) {
-						self.emit('notification', reply);
+						this.emit('notification', reply);
 					})
 					.catch(function(err) {
 						log.error('getHeaters promise rejected: ' + err);
@@ -267,7 +382,7 @@ function Teleinfo() {
 		);
 	};
 
-	this.setCommandForAllHeaters = function(command) {
+	setCommandForAllHeaters(command) {
 		if (command < 0 || command > 3) {
 			log.error('setCommandForAllHeaters: wrong command');
 			return;
@@ -277,10 +392,10 @@ function Teleinfo() {
 			[command],
 			(err) => {
 				if (!err) {
-					initHeatersFromDatabase();
-					self.getHeaters()
+					this.initHeatersFromDatabase();
+					this.getHeaters()
 					.then(function(reply) {
-						self.emit('notification', reply);
+						this.emit('notification', reply);
 					})
 					.catch(function(err) {
 						log.error('getHeaters promise rejected: ' + err);
@@ -294,7 +409,7 @@ function Teleinfo() {
 	};
 
 
-	this.getHeaters = function() {
+	getHeatersn() {
 		var p = new Promise(function(resolve, reject) {
 			db.all(
 				"SELECT * FROM dashboard",
@@ -317,7 +432,7 @@ function Teleinfo() {
 		return p;
 	};
 
-	this.saveMessage = function(msg) {
+	saveMessage(msg) {
 		/*
 		if (!('type' in msg)) {
 			log.error('no type to save message in db');
@@ -362,7 +477,7 @@ function Teleinfo() {
 	};
 
 
-	var infiniteReading = function() {
+	infiniteReading() {
 		var lineReader;
 
 		lineReader = readline.createInterface({
@@ -374,7 +489,7 @@ function Teleinfo() {
 			infiniteReading();
 		});
 
-		lineReader.on('line', function(line) {
+		lineReader.on('line', line => {
 			var rcvdMessage = '';
 			var emitMessage = {};
 
@@ -388,16 +503,16 @@ function Teleinfo() {
 					phase: phase,
 					value: amperes
 				};
-				self.emit('notification', emitMessage);
-				self.saveMessage(emitMessage);
+				this.emit('notification', emitMessage);
+				this.saveMessage(emitMessage);
 				
 				if (amperes >= 30) {
 					log.info('IINST phase ' + phase + ' : ' + amperes);
-					switchOneOff(phase);
+					this.switchOneOff(phase);
 				}
 				else {
 					log.debug('IINST phase ' + phase + ' : ' + amperes);
-					switchOneBack(phase);
+					this.switchOneBack(phase);
 				}
 				return;
 			}
@@ -411,10 +526,10 @@ function Teleinfo() {
 					phase: phase_dep,
 					value: amper_dep
 				};
-				self.emit('notification', emitMessage); 
-				self.saveMessage(emitMessage);
+				this.emit('notification', emitMessage); 
+				this.saveMessage(emitMessage);
 				log.info('ADIR phase ' + phase_dep + ' : ' + amper_dep);
-				switchOneOff(phase_dep);
+				this.switchOneOff(phase_dep);
 				return;
 			}
 
@@ -426,8 +541,8 @@ function Teleinfo() {
 					period: 'standard',
 					value: hp
 				};
-				self.emit('notification', emitMessage); 
-				self.saveMessage(emitMessage);
+				this.emit('notification', emitMessage); 
+				this.saveMessage(emitMessage);
 				log.debug('hp : ' + hp);
 				return;
 			}
@@ -440,8 +555,8 @@ function Teleinfo() {
 					period: 'savings',
 					value: hc
 				};
-				self.emit('notification', emitMessage); 
-				self.saveMessage(emitMessage);
+				this.emit('notification', emitMessage); 
+				this.saveMessage(emitMessage);
 				log.debug('hc : ' + hc);
 				return;
 			}
@@ -455,21 +570,13 @@ function Teleinfo() {
 					time: timestamp,
 					value: watts
 				};
-				self.emit('notification', emitMessage);
+				this.emit('notification', emitMessage);
 				log.debug('watts : ' + watts); 
 				return;
 			}
 		});
 	};
-
-	initHeatersFromDatabase();
-	infiniteReading();
-
 }
-
-// subclass Teleinfo extends superclass EventEmitter
-Teleinfo.prototype = Object.create(events.EventEmitter.prototype);
-Teleinfo.prototype.constructor = Teleinfo;
 
 // exports a single instance
 var teleinfo = new Teleinfo();
