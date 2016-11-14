@@ -120,7 +120,7 @@ class Statistics {
 
 	constructor() {
 		this.didStartOn = new Date();
-		this.willEndOn = new Date(this.didStartOn.getFullYear(), this.didStartOn.getMonth(), this.didStartOn.getDate(), this.didStartOn.getHours(), this.didStartOn.getMinutes() + 1, 0, 0);
+		this.willEndOn = new Date(this.didStartOn.getFullYear(), this.didStartOn.getMonth(), this.didStartOn.getDate(), this.didStartOn.getHours() + 1, 0, 0, 0);
 
 		this.secondsSwitchedOff = [0, 0, 0];
 		this.timestampLastSwitchedOff = [null, null, null];
@@ -174,7 +174,7 @@ class Statistics {
 
 	resetTimers() {
 		this.didStartOn = this.willEndOn;
-		this.willEndOn = new Date(this.didStartOn.getFullYear(), this.didStartOn.getMonth(), this.didStartOn.getDate(), this.didStartOn.getHours(), this.didStartOn.getMinutes() + 1, 0, 0);
+		this.willEndOn = new Date(this.didStartOn.getFullYear(), this.didStartOn.getMonth(), this.didStartOn.getDate(), this.didStartOn.getHours() + 1, 0, 0, 0);
 		
 		this.secondsSwitchedOff = [0, 0, 0];
 		this.timestampLastSwitchedOff = [null, null, null];
