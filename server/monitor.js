@@ -1,3 +1,5 @@
+'use strict';
+
 var i2cBus = require('i2c-bus').openSync(1);
 var readline = require('readline');
 var fs = require('fs');
