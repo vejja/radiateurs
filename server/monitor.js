@@ -215,6 +215,7 @@ class Statistics {
 		this.secondsXwatts += (interval / 1000) * this.lastWatt;
 		this.timestampLastWatt = newTimestamp;
 		this.lastWatt = watt;
+		log.debug('total seconds x watts : ', this.secondsXwatts);
 	}
 
 	addMeter(meter) {
@@ -574,6 +575,7 @@ class Teleinfo extends EventEmitter {
 					value: watts
 				};
 				this.emit('notification', emitMessage);
+				this.statistics.addPower(watts);
 				log.debug('watts : ' + watts); 
 				return;
 			}
