@@ -212,6 +212,8 @@ class Statistics {
 		this.secondsXintensity[phase - 1] += (interval / 1000) * this.lastIntensity[phase - 1];
 		this.timestampLastIntensity[phase - 1] = newTimestamp;
 		this.lastIntensity[phase - 1] = intensity;
+		log.debug('total seconds x intensity : ', this.secondsXintensity[phase - 1]);
+		log.debug('avg intensity : ', this.secondsXintensity[phase - 1] * 1000 / (lastTimestamp - this.didStartOn.getTime()));
 	}
 
 	addPower(watt) {
@@ -222,7 +224,7 @@ class Statistics {
 		this.timestampLastWatt = newTimestamp;
 		this.lastWatt = watt;
 		log.debug('total seconds x watts : ', this.secondsXwatts);
-		log.debug(' avg watts : ', this.secondsXwatts * 1000 / (lastTimestamp - this.didStartOn.getTime()));
+		log.debug('avg watts : ', this.secondsXwatts * 1000 / (lastTimestamp - this.didStartOn.getTime()));
 	}
 
 	addStandardMeter(meter) {
@@ -230,6 +232,7 @@ class Statistics {
 			this.startStandardMeter = meter;
 		}
 		this.endStandardMeter = meter;
+		log.debug('standard meter : ', this.endStandardMeter - this.startStandardMeter);
 	}
 	
 	addSavingsMeter(meter) {
@@ -237,6 +240,7 @@ class Statistics {
 			this.startSavingsMeter = meter;
 		}
 		this.endSavingsMeter = meter;
+		log.debug('savings meter : ', this.endSavingsMeter - this.startSavingsMeter);
 	}
 }
 
