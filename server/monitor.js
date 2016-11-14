@@ -412,7 +412,7 @@ class Teleinfo extends EventEmitter {
 	}
 
 
-	getHeatersn() {
+	getHeaters() {
 		var p = new Promise(function(resolve, reject) {
 			db.all(
 				"SELECT * FROM dashboard",
