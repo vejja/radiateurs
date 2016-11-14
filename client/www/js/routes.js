@@ -29,6 +29,7 @@ angular.module('app.routes', [])
 
     .state('tabsController.consommationTab', {
       url: '/consommation',
+      cache: false,
       views: {
         'tab2': {
           templateUrl: 'templates/consommationView.html',
