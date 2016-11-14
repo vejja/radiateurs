@@ -56,9 +56,9 @@ class I2CController {
 		// Toutes les broches sont utilisées en output sur le port A et sur le port B
 		// Lit les valeurs préexistantes sur le port A et sur le port B
 		this.i2cBus.writeByteSync(device, this.IODIRA, 0b00000000);
-		var portA = this.i2cBus.readByteSync(device, GPIOA);
+		var portA = this.i2cBus.readByteSync(device, this.GPIOA);
 		this.i2cBus.writeByteSync(device, this.IODIRB, 0b00000000);
-		var portB = this.i2cBus.readByteSync(device, GPIOB);
+		var portB = this.i2cBus.readByteSync(device, this.GPIOB);
 		
 		var commandsA = [];
 		var commandsB = [];
@@ -150,7 +150,7 @@ class Statistics {
 		var int2 = this.secondsXintensity[1] / this.interval;
 		var int3 = this.secondsXintensity[2] / this.interval;
 		var watts = this.secondsXwatts / this.interval;
-		var meter = (this.endMeter != null && this.startMeter != null) ? this.endMeter - this.startMeter : 0;
+		var meter = (this.endMeter !== null && this.startMeter !== null) ? this.endMeter - this.startMeter : 0;
 		db.run("INSERT INTO statistics (year, month, date, hour, off1, off2, off3, int1, int2, int3, watts, meter) VALUES ($year, $month, $date, $hour, $off1, $off2, $off3, $int1, $int2, $int3, $watts, $meter);", {
 			$year: year,
 			$month: month,
@@ -270,7 +270,7 @@ class Teleinfo extends EventEmitter {
 			this.emit('notification', emitMessage);
 			this.statistics.addSwitchOff(phase);
 		}
-	};
+	}
 
 	switchOneBack(phase) {
 		var limitIndex = 8 - this.nbrSwitchedOff[phase - 1];
