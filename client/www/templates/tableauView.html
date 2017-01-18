@@ -16,10 +16,10 @@
 					<div class="button text-center col col-30 col-center" ng-class="{'button-assertive': heater.command == system.commands.ARRET, 'button-energized': heater.command == system.commands.MARCHE, 'button-balanced': heater.command == system.commands.ECO, 'button-calm': heater.command == system.commands.HORSGEL}">FP{{heater.wire}}</div>
 
 					<div class="row">
-						<ion-option-button class=" button-assertive icon ion-close-circled" ng-class="{ 'button-outline': heater.command != system.commands.ARRET }" ng-click="setCommand(heater, system.commands.ARRET)"></ion-option-button>
-						<ion-option-button class=" button-energized icon ion-checkmark-circled" ng-class="{ 'button-outline': heater.command != system.commands.MARCHE }" ng-click="setCommand(heater, system.commands.MARCHE)"></ion-option-button>
-						<ion-option-button class="button-balanced icon ion-leaf" ng-class="{ 'button-outline': heater.command != system.commands.ECO }" ng-click="setCommand(heater, system.commands.ECO)"></ion-option-button>
-						<ion-option-button class="button-calm icon ion-ios-snowy" ng-class="{ 'button-outline': heater.command != system.commands.HORSGEL }" ng-click="setCommand(heater, system.commands.HORSGEL)"></ion-option-button>
+						<ion-option-button class=" button-assertive icon ion-close-circled" ng-class="{ 'button-outline': heater.command != system.commands.ARRET }" ng-click="setCommandForOneHeater(heater, system.commands.ARRET)"></ion-option-button>
+						<ion-option-button class=" button-energized icon ion-checkmark-circled" ng-class="{ 'button-outline': heater.command != system.commands.MARCHE }" ng-click="setCommandForOneHeater(heater, system.commands.MARCHE)"></ion-option-button>
+						<ion-option-button class="button-balanced icon ion-leaf" ng-class="{ 'button-outline': heater.command != system.commands.ECO }" ng-click="setCommandForOneHeater(heater, system.commands.ECO)"></ion-option-button>
+						<ion-option-button class="button-calm icon ion-ios-snowy" ng-class="{ 'button-outline': heater.command != system.commands.HORSGEL }" ng-click="setCommandForOneHeater(heater, system.commands.HORSGEL)"></ion-option-button>
         			</div>
 				</div>
 			</ion-item>

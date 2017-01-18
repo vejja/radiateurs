@@ -26,6 +26,9 @@ angular.module('app.services', [])
 		{label: 'power', values:[]}
 	];
 	system.powerStream = [{time:0, y:0}];					// object {time, value}
+	system.powerHistoryChart = [
+		{label: 'powerHistory', values: []}
+	];
 	system.connection = Connection;
 
 	var websocket = {};
@@ -37,6 +40,10 @@ angular.module('app.services', [])
 		}
 	}
 
+	function initSystem() {
+		sendMessage('loadAllHeaters', null);
+	};
+
 	function createWebSocket() {
 
 		var url = Connection.baseUrl();
@@ -45,16 +52,18 @@ angular.module('app.services', [])
 		websocket.onopen = function(event) {
 			console.log('websocket open event', event);
 			Connection.status = 'on';
-			updateSystem();
+			initSystem();
 		};
 
 		websocket.onmessage = function(event) {
 			var message = JSON.parse(event.data);
 			switch (message.type) {
 				case 'heaters' :
+					console.log('heaters', message.data);
 					updateAllHeaters(message.data);
 					break;
 				case 'heater' :
+					console.log('heater', message.data);
 					updateOneHeater(message.data);
 					break;
 				case 'current' :
@@ -68,6 +77,9 @@ angular.module('app.services', [])
 					break;
 				case 'switch' :
 					updateSwitchedOff(message.data);
+					break;
+				case 'history' :
+					updateHistory(message.data);
 					break;
 			}
 			updateSystem();
@@ -192,17 +204,26 @@ angular.module('app.services', [])
 	 */ 
 	function updatePower(powerData) {
 		system.power = powerData.value;
-		system.powerChart[0].values.push({
+		/*system.powerChart[0].values.push({
 			time: powerData.time,
 			y: powerData.value
 		});
 		if (system.powerChart[0].values.length > 40) {
 			system.powerChart[0].values.shift();
-		}
+		}*/
 		system.powerStream = [{
 			time: powerData.time,
 			y: powerData.value
 		}];
+	}
+
+	/**
+	 * Met à jour les historiques
+	 * 
+	 * @param historyData
+	 */
+	function updateHistory(historyData) {
+
 	}
 
 	/**
@@ -234,10 +255,6 @@ angular.module('app.services', [])
 	system.setCommandForAllHeaters = function(command) {
 		var data = command;
 		sendMessage('uniformCommand', data);
-	};
-
-	system.loadAllHeaters = function() {
-		sendMessage('loadAllHeaters', null);
 	};
 
 	system.setConnectionType = function(type) {

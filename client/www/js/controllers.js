@@ -2,7 +2,6 @@ angular.module('app.controllers', [])
 
 .controller('sideCtrl', function($scope, System, $ionicPopover) {
 	$scope.system = System;
-	System.loadAllHeaters();
 
 	$scope.setCommand = function(command) {
 		System.setCommandForAllHeaters(command);
@@ -40,19 +39,16 @@ angular.module('app.controllers', [])
 })
   
 .controller('delestageCtrl', function($scope, System) {
-	$scope.system = System;
+	//$scope.system = System;
 })
    
 .controller('consommationCtrl', function($scope, System) {
-	$scope.system = System;
-
+	//$scope.system = System;
 })
    
 .controller('tableauCtrl', function($scope, System) {
-	$scope.system = System;
-	System.loadAllHeaters();
-	
-	$scope.setCommand = function(heater, command) {
+
+	$scope.setCommandForOneHeater = function(heater, command) {
 		var heaterId = heater.id;
 		System.setCommandForOneHeater(heaterId, command);
 	};
