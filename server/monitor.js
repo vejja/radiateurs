@@ -168,6 +168,8 @@ class Statistics {
 		}, (err) => {
 			if (err) {
 				log.error('reset statistics : INSERT query failed; ', err);
+			} else {
+
 			}
 		});
 	}
@@ -469,6 +471,28 @@ class Teleinfo extends EventEmitter {
 		return p;
 	}
 
+	getHistory() {
+		var p = new Promise(function(resolve, reject) {
+			db.all(
+				"SELECT * FROM statistics ORDER BY rowid DESC LIMIT 30",
+				[],
+				(err, rows) => {
+					if (!err) {
+						var reply = {
+							type: 'history',
+							data: rows
+						};
+						resolve(reply);
+					}
+					else {
+						log.error('getHistory : SELECT query failed');
+						reject(err);
+					}
+				}
+			);
+		});
+		return p;
+	}
 
 	infiniteReading() {
 		var lineReader;

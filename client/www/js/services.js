@@ -223,7 +223,24 @@ angular.module('app.services', [])
 	 * @param historyData
 	 */
 	function updateHistory(historyData) {
+		
+		historyData.forEach(function(historyDataRow) {
+			var year = historyDataRow[0];
+			var month = historyDataRow[1];
+			var date = historyDataRow[2];
+			var hour = historyDataRow[3];
+			var off1 = historyDataRow[4];
+			var off2 = historyDataRow[5];
+			var off3 = historyDataRow[6];
+			var int1 = historyDataRow[7];
+			var int2 = historyDataRow[8];
+			var int3 = historyDataRow[9]; 
+			var watts = historyDataRow[10];
+			var meterDiff = historyDataRow[11];
 
+			var didStartOn = new Date(year, month, date, hour, 0, 0, 0);
+			system.powerHistoryChart.values.push({x: didStartOn, y: watts});
+		})
 	}
 
 	/**
