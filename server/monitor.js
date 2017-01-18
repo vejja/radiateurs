@@ -431,10 +431,10 @@ class Teleinfo extends EventEmitter {
 				if (!err) {
 					this.initHeatersFromDatabase();
 					this.getHeaters()
-					.then(function(reply) {
+					.then(reply => {
 						this.emit('notification', reply);
 					})
-					.catch(function(err) {
+					.catch(err => {
 						log.error('getHeaters promise rejected: ' + err);
 					});
 				}
