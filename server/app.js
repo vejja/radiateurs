@@ -71,14 +71,19 @@ wss.on('connection', function(ws) {
 				break;
 
 			case 'loadAllHeaters' :
-				teleinfo.getHistory()
-				.then(reply => ws.send(JSON.stringify(reply)))
-				.catch(err => log.error('getHistory promise rejected', err));
-
 				teleinfo.getHeaters()
 				.then(reply => ws.send(JSON.stringify(reply)))
 				.catch(err => log.error('getHeaters promise rejected', err));
+				break;
 
+			case 'loadHistory' :
+				if (!('data' in message)) {
+					log.error('loadHistory: syntax error');
+					return;
+				}
+				teleinfo.getHistory(message.data)
+				.then(reply => ws.send(JSON.stringify(reply)))
+				.catch(err => log.error('getHistory promise rejected', err));
 				break;
 
 		}

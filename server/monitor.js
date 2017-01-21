@@ -471,7 +471,33 @@ class Teleinfo extends EventEmitter {
 		return p;
 	}
 
-	getHistory() {
+	getHistory(historyRange) {
+		var range = null;
+		switch (historyRange) {
+			case '24h':
+			range = '-24 hours';
+			break;
+
+			case '7j':
+			range = '-7 days';
+			break;
+
+			case '1m':
+			range = '-1 month';
+			break;
+
+			case '12m':
+			range = '-12 months';
+			break;
+
+			case 'inf':
+			default:
+			break;
+		}
+		var query = "SELECT * FROM statistics ORDER BY rowid DESC";
+		if (range !== null) {
+			query = "SELECT * FROM statistic WHERE date > "
+		}
 		var p = new Promise(function(resolve, reject) {
 			db.all(
 				"SELECT * FROM statistics ORDER BY rowid DESC LIMIT 30",
