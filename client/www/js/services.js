@@ -236,6 +236,10 @@ angular.module('app.services', [])
 	 * @param historyData
 	 */
 	function updateHistory(historyData) {
+		system.historyRange = historyData.range;
+		system.powerHistoryChart.labels = [];
+		system.powerHistoryChart.data = [];
+		system.powerHistoryChart.colors = [];
 		historyData.forEach(function(historyDataRow) {
 			var start = historyDataRow.start;
 			var off1 = historyDataRow.off1;
@@ -249,8 +253,8 @@ angular.module('app.services', [])
 
 			var didStartOn = new Date(start * 1000).toString().split(" ");
 			var label = didStartOn[0] + " " + didStartOn[1] + " " + didStartOn[2] + " " + didStartOn[3] + " " + didStartOn[4];
-			system.powerHistoryChart.labels.unshift(label);
-			system.powerHistoryChart.data.unshift(watts);
+			system.powerHistoryChart.labels.push(label);
+			system.powerHistoryChart.data.push(watts);
 			system.powerHistoryChart.colors.unshift("#C0C0C0");
 		});
 	}
@@ -286,8 +290,8 @@ angular.module('app.services', [])
 		sendMessage('uniformCommand', data);
 	};
 
-	system.refreshHistory = function() {
-		sendMessage('loadHistory', system.historyRange);
+	system.refreshHistory = function(newHistoryRange) {
+		sendMessage('loadHistory', newHistoryRange);
 	}
 
 	system.setConnectionType = function(type) {

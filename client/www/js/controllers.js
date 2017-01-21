@@ -59,30 +59,30 @@ angular.module('app.controllers', [])
 	$scope.changeHistoryRange = function() {
 		switch (System.historyRange) {
 			case '24h':
-			System.historyRange = '7j';
+			newHistoryRange = '7j';
 			break;
 
 			case '7j':
-			System.historyRange = '1m';
+			newHistoryRange = '1m';
 			break;
 
 			case '1m':
-			System.historyRange = '12m';
+			newHistoryRange = '12m';
 			break;
 
 			case '12m':
-			System.historyRange = 'inf';
+			newHistoryRange = 'inf';
 			break;
 
 			case 'inf':
-			System.historyRange = '24h';
+			newHistoryRange = '24h';
 			break;
 		}
-		System.refreshHistory();
+		System.refreshHistory(newHistoryRange);
 	};
 
 	$scope.refreshHistory = function() {
-		System.refreshHistory();
+		System.refreshHistory(System.historyRange);
 	};
 });
        
