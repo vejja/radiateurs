@@ -488,13 +488,13 @@ class Teleinfo extends EventEmitter {
 			default:
 			break;
 		}
-		var query = "SELECT * FROM statistics ORDER BY rowid DESC";
+		var query = "SELECT * FROM statistics ORDER BY start";
 		if (range !== null) {
-			query = "SELECT * FROM statistic WHERE date > "
+			query = "SELECT * FROM statistics WHERE datetime(start, 'unixepoch') >= datetime('now', '" + range + "') ORDER BY start;";
 		}
 		var p = new Promise(function(resolve, reject) {
 			db.all(
-				"SELECT * FROM statistics ORDER BY rowid DESC LIMIT 30",
+				query,
 				[],
 				(err, rows) => {
 					if (!err) {

@@ -237,10 +237,7 @@ angular.module('app.services', [])
 	 */
 	function updateHistory(historyData) {
 		historyData.forEach(function(historyDataRow) {
-			var year = historyDataRow.year;
-			var month = historyDataRow.month;
-			var date = historyDataRow.date;
-			var hour = historyDataRow.hour;
+			var start = historyDataRow.start;
 			var off1 = historyDataRow.off1;
 			var off2 = historyDataRow.off2;
 			var off3 = historyDataRow.off3;
@@ -250,7 +247,7 @@ angular.module('app.services', [])
 			var watts = historyDataRow.watts;
 			var meter = historyDataRow.meter;
 
-			var didStartOn = new Date(year, month, date, hour, 0, 0, 0).toString().split(" ");
+			var didStartOn = new Date(start * 1000).toString().split(" ");
 			var label = didStartOn[0] + " " + didStartOn[1] + " " + didStartOn[2] + " " + didStartOn[3] + " " + didStartOn[4];
 			system.powerHistoryChart.labels.unshift(label);
 			system.powerHistoryChart.data.unshift(watts);
