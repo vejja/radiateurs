@@ -22,13 +22,24 @@ angular.module('app.services', [])
 		savings: 0
 	};
 	system.power = undefined;
-	system.powerChart = [
-		{label: 'power', values:[]}
-	];
-	system.powerStream = [{time:0, y:0}];					// object {time, value}
-	system.powerHistoryChart = [
-		{label: 'powerHistory', values: []}
-	];
+	system.powerChart = {
+		options: {
+			animation: {duration: 0},
+			elements: {point: {radius: 0}},
+			scales: {gridLines: {display: false}},
+		},
+		colors: ['#ef473a'],
+		labels: new Array(30), 
+		data: new Array(30),
+	};
+
+	system.historyRange = "24h";
+	system.powerHistoryChart = {
+		colors: [],
+		labels: [], 
+		data: [],
+	};
+
 	system.connection = Connection;
 
 	var websocket = {};
@@ -37,12 +48,14 @@ angular.module('app.services', [])
 	function updateSystem() {
 		if (!$rootScope.$$phase) {
 			$rootScope.$digest();
+			//console.log('digest');
 		}
 	}
 
 	function initSystem() {
 		sendMessage('loadAllHeaters', null);
-	};
+		sendMessage('loadHistory', system.historyRange);
+	}
 
 	function createWebSocket() {
 
@@ -59,26 +72,31 @@ angular.module('app.services', [])
 			var message = JSON.parse(event.data);
 			switch (message.type) {
 				case 'heaters' :
-					console.log('heaters', message.data);
+					//console.log('heaters', message.data);
 					updateAllHeaters(message.data);
 					break;
 				case 'heater' :
-					console.log('heater', message.data);
+					//console.log('heater', message.data);
 					updateOneHeater(message.data);
 					break;
 				case 'current' :
+					//console.log('current', message.data);
 					updateCurrent(message.data);
 					break;
 				case 'meter' :
+					//console.log('meter', message.data);
 					updateMeter(message.data);
 					break;
 				case 'power' :
+					//console.log('power', message.data);
 					updatePower(message.data);
 					break;
 				case 'switch' :
+					//console.log('switch', message.data);
 					updateSwitchedOff(message.data);
 					break;
 				case 'history' :
+					//console.log('history');
 					updateHistory(message.data);
 					break;
 			}
@@ -204,17 +222,12 @@ angular.module('app.services', [])
 	 */ 
 	function updatePower(powerData) {
 		system.power = powerData.value;
-		/*system.powerChart[0].values.push({
-			time: powerData.time,
-			y: powerData.value
-		});
-		if (system.powerChart[0].values.length > 40) {
-			system.powerChart[0].values.shift();
-		}*/
-		system.powerStream = [{
-			time: powerData.time,
-			y: powerData.value
-		}];
+		var date = new Date(powerData.time*1000);
+		var label = date.toString().split(" ")[4];
+		system.powerChart.labels.push(label);
+		system.powerChart.labels.shift();
+		system.powerChart.data.push(powerData.value);
+		system.powerChart.data.shift();
 	}
 
 	/**
@@ -223,24 +236,26 @@ angular.module('app.services', [])
 	 * @param historyData
 	 */
 	function updateHistory(historyData) {
-		
 		historyData.forEach(function(historyDataRow) {
-			var year = historyDataRow[0];
-			var month = historyDataRow[1];
-			var date = historyDataRow[2];
-			var hour = historyDataRow[3];
-			var off1 = historyDataRow[4];
-			var off2 = historyDataRow[5];
-			var off3 = historyDataRow[6];
-			var int1 = historyDataRow[7];
-			var int2 = historyDataRow[8];
-			var int3 = historyDataRow[9]; 
-			var watts = historyDataRow[10];
-			var meterDiff = historyDataRow[11];
+			var year = historyDataRow.year;
+			var month = historyDataRow.month;
+			var date = historyDataRow.date;
+			var hour = historyDataRow.hour;
+			var off1 = historyDataRow.off1;
+			var off2 = historyDataRow.off2;
+			var off3 = historyDataRow.off3;
+			var int1 = historyDataRow.int1;
+			var int2 = historyDataRow.int2;
+			var int3 = historyDataRow.int3; 
+			var watts = historyDataRow.watts;
+			var meter = historyDataRow.meter;
 
-			var didStartOn = new Date(year, month, date, hour, 0, 0, 0);
-			system.powerHistoryChart.values.push({x: didStartOn, y: watts});
-		})
+			var didStartOn = new Date(year, month, date, hour, 0, 0, 0).toString().split(" ");
+			var label = didStartOn[0] + " " + didStartOn[1] + " " + didStartOn[2] + " " + didStartOn[3] + " " + didStartOn[4];
+			system.powerHistoryChart.labels.unshift(label);
+			system.powerHistoryChart.data.unshift(watts);
+			system.powerHistoryChart.colors.unshift("#C0C0C0");
+		});
 	}
 
 	/**
@@ -273,6 +288,10 @@ angular.module('app.services', [])
 		var data = command;
 		sendMessage('uniformCommand', data);
 	};
+
+	system.refreshHistory = function() {
+		sendMessage('loadHistory', system.historyRange);
+	}
 
 	system.setConnectionType = function(type) {
 		Connection.type = type;

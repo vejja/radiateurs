@@ -1,4 +1,4 @@
-angular.module('app.directives', ['frapontillo.gage', 'ng.epoch'])
+angular.module('app.directives', ['frapontillo.gage', 'chart.js'])
 
 // Charting directives included above
 

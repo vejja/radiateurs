@@ -46,7 +46,19 @@ angular.module('app.routes', [])
           controller: 'tableauCtrl'
         }
       }
-    });
+    })
+    
+    .state('tabsController.historyTab', {
+      url: '/history',
+      cache: false,
+      views: {
+        'tab4': {
+          templateUrl: 'templates/historyView.html',
+          controller: 'historyCtrl'
+        }
+      }
+    })
+    ;
 
 $urlRouterProvider.otherwise('/app/delestage');
 

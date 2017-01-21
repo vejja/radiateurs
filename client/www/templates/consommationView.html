@@ -20,15 +20,12 @@
 				<span class="badge badge-assertive">{{system.power}}</span>
 			</a>
 			<div class="item item-body">
-			    <epoch-live-line chart-height="200" chart-data="system.powerChart" chart-stream="system.powerStream" chart-axes="['left', 'bottom', 'right']" chart-queue-size="1"></epoch-live-line>
-			</div>
-
-			<a class="item item-divider item-icon-left calm">
-			    <i class="icon ion-ios-calendar calm"></i>
-				Historique
-			</a>
-			<div class="item item-body">
-			    <epoch-line chart-height="200" chart-data="system.powerHistoryChart" chart-axes="['left', 'bottom', 'right']"></epoch-line>
+			    <canvas class="chart chart-line"
+					chart-labels="system.powerChart.labels"
+					chart-data="system.powerChart.data"
+					chart-options="system.powerChart.options"
+					chart-colors="system.powerChart.colors">
+				</canvas>
 			</div>
 
     	</div>

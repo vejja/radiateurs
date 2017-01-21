@@ -52,5 +52,37 @@ angular.module('app.controllers', [])
 		var heaterId = heater.id;
 		System.setCommandForOneHeater(heaterId, command);
 	};
+})
+
+.controller('historyCtrl', function($scope, System) {
+
+	$scope.changeHistoryRange = function() {
+		switch (System.historyRange) {
+			case '24h':
+			System.historyRange = '7j';
+			break;
+
+			case '7j':
+			System.historyRange = '1m';
+			break;
+
+			case '1m':
+			System.historyRange = '12m';
+			break;
+
+			case '12m':
+			System.historyRange = 'inf';
+			break;
+
+			case 'inf':
+			System.historyRange = '24h';
+			break;
+		}
+		System.refreshHistory();
+	};
+
+	$scope.refreshHistory = function() {
+		System.refreshHistory();
+	};
 });
        

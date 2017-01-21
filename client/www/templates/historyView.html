@@ -1,0 +1,20 @@
+<ion-view view-title="Historique {{ system.historyRange }}" id="page4">
+    <ion-content padding="true" class="has-header">
+    	<div class="list card">
+
+			<a class="item item-divider item-icon-left item-icon-right">
+			    <i class="icon ion-ios-calendar calm"></i>
+				Puissance (watts)
+                <i class="icon ion-loop dark" ng-click="refreshHistory()"></i>
+			</a>
+			<div class="item item-body" ng-click="changeHistoryRange()">
+				<canvas class="chart chart-bar"
+					chart-labels="system.powerHistoryChart.labels"
+					chart-data="system.powerHistoryChart.data"
+                    chart-colors="system.powerHistoryChart.colors"
+					chart-options="system.powerHistoryChart.options">
+				</canvas>			</div>
+
+    	</div>
+    </ion-content>
+</ion-view>

@@ -7,8 +7,8 @@
     <title>Radiateurs</title>
     <link rel="icon" type="image/png" href="favicon.png" />
 
-    <link rel="stylesheet" href="lib/epoch/dist/css/epoch.min.css" />
-    <script src="lib/jquery/dist/jquery.min.js"></script>
+    <!--link rel="stylesheet" href="lib/epoch/dist/css/epoch.min.css" /-->
+    <!--script src="lib/jquery/dist/jquery.min.js"></script-->
 
     <link href="lib/ionic/css/ionic.min.css" rel="stylesheet">
     <script src="lib/ionic/js/ionic.bundle.min.js"></script>
@@ -21,10 +21,16 @@
     -->
 
     <!--Charting Libs-->
-    <script src="lib/d3/d3.min.js"></script>
+    <!-- ng-epoch, abandonned -->
+    <!--script src="lib/d3/d3.min.js"></script>
     <script src="lib/epoch/dist/js/epoch.min.js"></script>
-    <script src="lib/ng-epoch/ng-epoch.js"></script>
+    <script src="lib/ng-epoch/ng-epoch.js"></script-->
 
+    <!-- angular-chart -->
+    <script src="lib/chart.js/dist/Chart.min.js"></script>
+    <script src="lib/angular-chart.js/dist/angular-chart.min.js"></script>
+
+    <!-- justgage -->
     <script src="lib/raphael/raphael-min.js"></script>
     <script src="lib/justgage-bower/justgage.js"></script>
     <script src="lib/angular-gage/dist/angular-gage.min.js"></script>
@@ -91,13 +97,6 @@
                 </ion-list>
             </div>
 
-            
-                <!--div class="button-bar" data-componentid="button-bar1">
-                    <a href="mailto:" id="settings-button1" style="font-size:-5px;" class="button button-assertive  button-block icon ion-power" data-componentid="button1"></a>
-                    <button id="settings-button2" class="button button-energized  button-block icon ion-flame" data-componentid="button2"></button>
-                    <button id="settings-button4" class="button button-balanced  button-block icon ion-leaf" data-componentid="button4"></button>
-                    <button id="settings-button3" style="border-radius:0px 0px 0px 0px;" class="button button-calm  button-block icon ion-ios-snowy" data-componentid="button3"></button>
-                </div-->
             </ion-content>
         </ion-side-menu>
     </ion-side-menus>
