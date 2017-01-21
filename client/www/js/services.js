@@ -235,11 +235,12 @@ angular.module('app.services', [])
 	 * 
 	 * @param historyData
 	 */
-	function updateHistory(historyData) {
-		system.historyRange = historyData.range;
+	function updateHistory(data) {
+		system.historyRange = data.range;
 		system.powerHistoryChart.labels = [];
 		system.powerHistoryChart.data = [];
 		system.powerHistoryChart.colors = [];
+		var historyData = data.history;
 		historyData.forEach(function(historyDataRow) {
 			var start = historyDataRow.start;
 			var off1 = historyDataRow.off1;

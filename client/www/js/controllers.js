@@ -57,6 +57,7 @@ angular.module('app.controllers', [])
 .controller('historyCtrl', function($scope, System) {
 
 	$scope.changeHistoryRange = function() {
+		var newHistoryRange = '24h';
 		switch (System.historyRange) {
 			case '24h':
 			newHistoryRange = '7j';

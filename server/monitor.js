@@ -500,8 +500,10 @@ class Teleinfo extends EventEmitter {
 					if (!err) {
 						var reply = {
 							type: 'history',
-							range: historyRange,
-							data: rows
+							data: {
+								range: historyRange,
+								history: rows
+							}
 						};
 						resolve(reply);
 					}
