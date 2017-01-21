@@ -138,10 +138,7 @@ class Statistics {
 	}
 
 	flushToDb() {
-		var year = this.didStartOn.getFullYear();
-		var month = this.didStartOn.getMonth();
-		var date = this.didStartOn.getDate();
-		var hour = this.didStartOn.getHours(); 
+		var start = this.didStartOn.getTime() / 1000; 
 		var off1 = Math.round(this.secondsSwitchedOff[0]);
 		var off2 = Math.round(this.secondsSwitchedOff[1]);
 		var off3 = Math.round(this.secondsSwitchedOff[2]);
@@ -152,11 +149,8 @@ class Statistics {
 		var standardMeterDiff = (this.endStandardMeter !== null && this.startStandardMeter !== null) ? this.endStandardMeter - this.startStandardMeter : 0;
 		var savingsMeterDiff = (this.endSavingsMeter !== null && this.startSavingsMeter !== null) ? this.endSavingsMeter - this.startSavingsMeter : 0;
 		var meterDiff = standardMeterDiff + savingsMeterDiff;
-		db.run("INSERT INTO statistics (year, month, date, hour, off1, off2, off3, int1, int2, int3, watts, meter) VALUES ($year, $month, $date, $hour, $off1, $off2, $off3, $int1, $int2, $int3, $watts, $meter);", {
-			$year: year,
-			$month: month,
-			$date: date,
-			$hour: hour,
+		db.run("INSERT INTO statistics (start, off1, off2, off3, int1, int2, int3, watts, meter) VALUES ($start, $off1, $off2, $off3, $int1, $int2, $int3, $watts, $meter);", {
+			$start: start,
 			$off1 : off1,
 			$off2: off2,
 			$off3: off3,
