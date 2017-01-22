@@ -24,9 +24,19 @@ angular.module('app.services', [])
 	system.power = undefined;
 	system.powerChart = {
 		options: {
-			animation: {duration: 0},
-			elements: {point: {radius: 0}},
-			scales: {gridLines: {display: false}},
+			animation: {
+				duration: 0
+			},
+			elements: {
+				point: {
+					radius: 0
+				}
+			},
+			scales: {
+				gridLines: {
+					display: false
+				}
+			},
 		},
 		colors: ['#ef473a'],
 		labels: new Array(30), 
@@ -36,6 +46,26 @@ angular.module('app.services', [])
 	system.historyRange = "24h";
 	system.powerHistoryChart = {
 		colors: [],
+		labels: [], 
+		data: [],
+	};
+
+	system.intensityHistoryChart = {
+		options: {
+			scales: {
+				xAxes: [{
+					stacked: true,
+				}],
+				yAxes: [{
+					stacked: true
+				}]
+			},
+			legend: {
+				display: true
+			}
+		},
+		colors : ['#FFD54F', '#FFB300', '#FF6F00'],
+		series: ['phase1', 'phase2', 'phase3'],
 		labels: [], 
 		data: [],
 	};
@@ -240,6 +270,8 @@ angular.module('app.services', [])
 		system.powerHistoryChart.labels = [];
 		system.powerHistoryChart.data = [];
 		system.powerHistoryChart.colors = [];
+		system.intensityHistoryChart.labels = [];
+		system.intensityHistoryChart.data = [[], [], []];
 		var historyData = data.history;
 		historyData.forEach(function(historyDataRow) {
 			var start = historyDataRow.start;
@@ -256,7 +288,11 @@ angular.module('app.services', [])
 			var label = didStartOn[0] + " " + didStartOn[1] + " " + didStartOn[2] + " " + didStartOn[3] + " " + didStartOn[4];
 			system.powerHistoryChart.labels.push(label);
 			system.powerHistoryChart.data.push(watts);
-			system.powerHistoryChart.colors.unshift("#C0C0C0");
+			system.powerHistoryChart.colors.push("#9C27B0");
+			system.intensityHistoryChart.labels.push(label);
+			system.intensityHistoryChart.data[0].push(int1);
+			system.intensityHistoryChart.data[1].push(int2);
+			system.intensityHistoryChart.data[2].push(int3);
 		});
 	}
 

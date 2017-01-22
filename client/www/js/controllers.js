@@ -75,8 +75,7 @@ angular.module('app.controllers', [])
 			newHistoryRange = 'inf';
 			break;
 
-			case 'inf':
-			newHistoryRange = '24h';
+			default:
 			break;
 		}
 		System.refreshHistory(newHistoryRange);

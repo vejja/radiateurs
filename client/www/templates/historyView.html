@@ -12,8 +12,23 @@
 					chart-labels="system.powerHistoryChart.labels"
 					chart-data="system.powerHistoryChart.data"
                     chart-colors="system.powerHistoryChart.colors"
-					chart-options="system.powerHistoryChart.options">
-				</canvas>			</div>
+				</canvas>			
+            </div>
+            
+            <a class="item item-divider item-icon-left item-icon-right">
+			    <i class="icon ion-ios-calendar calm"></i>
+				Intensite (amperes)
+                <i class="icon ion-loop dark" ng-click="refreshHistory()"></i>
+			</a>
+			<div class="item item-body" ng-click="changeHistoryRange()">
+				<canvas class="chart chart-bar"
+					chart-labels="system.intensityHistoryChart.labels"
+					chart-data="system.intensityHistoryChart.data"
+                    chart-series="system.intensityHistoryChart.series"
+                    chart-options="system.intensityHistoryChart.options"
+                    chart-colors="system.intensityHistoryChart.colors"
+				</canvas>			
+            </div>
 
     	</div>
     </ion-content>
