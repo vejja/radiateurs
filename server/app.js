@@ -6,16 +6,16 @@ var nbSockets = 0;
 var protocol = "UNTOKENGENEREAUHASARDPOURACCEDERAUSERVEURWEBSOCKET";
 var options = {
 	port: 3000,
-	handleProtocols: function(protocols, cb) {
-		if (protocols.indexOf(protocol) > -1) {
-			log.info('websocket protocol identification successful');
-			cb(true, protocol);
-		}
-		else {
-			log.error('websocket protocol unauthorized');
-			cb(false, null);
-		}
-	},
+//	handleProtocols: function(protocols, cb) {
+//		if (protocols.indexOf(protocol) > -1) {
+//			log.info('websocket protocol identification successful');
+//			cb(true, protocol);
+//		}
+//		else {
+//			log.error('websocket protocol unauthorized');
+//			cb(false, null);
+//		}
+//	},
 };
 
 
