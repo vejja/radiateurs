@@ -1,0 +1,16 @@
+[Unit]
+Description=The Radiateurs Backend Service
+After=network.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/radiateurs/server
+Type=simple
+ExecStart=/usr/local/bin/node app.js
+ExecStartPost=stty -F /dev/ttyAMA0 1200 sane evenp parenb cs7 -crtscts intr undef
+Restart=always
+RestartSec=10
+SyslogIdentifier=radiateurs
+
+[Install]
+WantedBy=multi-user.target

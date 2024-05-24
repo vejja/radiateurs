@@ -1,26 +1,30 @@
-function Logger() {
-	var level = 'info'; // Choisir entre error, info et debug
+class Logger {
+  /**
+   * Log level
+   * @type { 'error' | 'info' | 'debug' }
+   */
+  level = 'info' // Choisir entre error, info et debug
 
-	this.debug = function() {
-		if (level == 'debug') {
-			var logDate = new Date();
-			console.log('LOG [' + logDate.toString() + ']', arguments);
-		}
-	};
+  debug() {
+    if (this.level === 'debug') {
+      const logDate = new Date()
+      console.log('LOG [' + logDate.toString() + ']', arguments)
+    }
+  }
 
-	this.info = function() {
-		if (level == 'info' || level == 'debug') {
-			var logDate = new Date();
-			console.log('INF [' + logDate.toString() + ']', arguments);
-		}
-	};
+  info() {
+    if (this.level === 'info' || this.level === 'debug') {
+      const logDate = new Date()
+      console.log('INF [' + logDate.toString() + ']', arguments)
+    }
+  }
 
-	this.error = function() {
-		var logDate = new Date();
-		console.log('ERR [' + logDate.toString() + ']', arguments);
-	};
+  error() {
+    const logDate = new Date()
+    console.log('ERR [' + logDate.toString() + ']', arguments)
+  }
 }
 
-var logger = new Logger();
+const logger = new Logger()
 
-module.exports = logger;
+export default logger

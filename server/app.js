@@ -1,98 +1,97 @@
-var WebSocketServer = require('ws').Server;
-var teleinfo = require('./monitor');
-var log = require('./logger');
+import { WebSocketServer } from 'ws'
+import teleinfo from './monitor.js'
+import log from './logger.js'
 	
-var nbSockets = 0;
-var protocol = "UNTOKENGENEREAUHASARDPOURACCEDERAUSERVEURWEBSOCKET";
-var options = {
-	port: 3000,
-//	handleProtocols: function(protocols, cb) {
-//		if (protocols.indexOf(protocol) > -1) {
-//			log.info('websocket protocol identification successful');
-//			cb(true, protocol);
-//		}
-//		else {
-//			log.error('websocket protocol unauthorized');
-//			cb(false, null);
-//		}
-//	},
-};
+let nbSockets = 0
+
+const options = {
+  port: 3000,
+}
 
 
-var wss = new WebSocketServer(options, () => {log.info('****************** SERVER STARTED ********************');});
-//log.info(wss);
+const wss = new WebSocketServer(options, () => {log.info('****************** SERVER STARTED ********************')})
 
 wss.on('connection', function(ws) {
-	//var source = ws.upgradeReq.url;
+  console.log('websocket connected')
 
-	var broadcaster = function(message) {
-		ws.send(JSON.stringify(message), function(error) {
-			if (!error) {
-				//console.log('websocket sent: ', message);
-			}
-			else {
-				//console.log('error broadcasting notification: ', error);
-				ws.close();
-			}
-		});
-	};
+  /**
+	 * Sends a message to all connected clients
+	 * @param { any } message 
+	 */
+  function broadcaster(message) {
+    ws.send(JSON.stringify(message.detail), function(error) {
+      if (error) {
+        console.log('error broadcasting notification:', error)
+        ws.close()
+      }
+      else {
+        console.log('websocket sent:', message.detail)
+      }
+    })
+  }
 
-	teleinfo.addListener('notification', broadcaster);
-	++nbSockets;
-	log.info('websocket connected, total = ' + nbSockets);
+  teleinfo.addEventListener('notification', broadcaster)
+  ++nbSockets
+  log.info('websocket connected, total = ' + nbSockets)
 
-	ws.on('message', (messageString, flags) => {
-
-		var message = {};
+  ws.on('message', (rawMessage) => {
+    const messageString = rawMessage.toString()
+    console.log('websocket received:', messageString)
+    /** @type { any } */
+    let message = {}
 		
-		try {
-			message = JSON.parse(messageString);
-		} catch (e) {
-			//console.log('bad message', e);
-			return;
-		}
+    try {
+      message = JSON.parse(messageString)
+    } catch {
+      //console.log('bad message', e);
+      return
+    }
 
-		//console.log(source, 'websocket received: ', message, flags);
-		switch (message.type) {
-			case 'command' :
-				if (!('data' in message && 'command' in message.data && 'id' in message.data)) {
-					log.error('command: syntax error');
-					return;
-				}
-				teleinfo.setCommandForHeater(message.data.command, message.data.id);
-				break;
+    //console.log(source, 'websocket received: ', message, flags);
+    switch (message.type) {
+    case 'command' :
+      if (!('data' in message && 'command' in message.data && 'id' in message.data)) {
+        log.error('command: syntax error')
+        return
+      }
+      teleinfo.setCommandForHeater(message.data.command, message.data.id)
+      break
+    
 
-			case 'uniformCommand' :
-				if (!('data' in message)) {
-					log.error('uniformCommand: syntax error');
-					return;
-				}
-				teleinfo.setCommandForAllHeaters(message.data);
-				break;
+    case 'uniformCommand' :
+      if (!('data' in message)) {
+        log.error('uniformCommand: syntax error')
+        return
+      }
+      teleinfo.setCommandForAllHeaters(message.data)
+      break
+    
 
-			case 'loadAllHeaters' :
-				teleinfo.getHeaters()
-				.then(reply => ws.send(JSON.stringify(reply)))
-				.catch(err => log.error('getHeaters promise rejected', err));
-				break;
+    case 'loadAllHeaters' :
+      teleinfo.getHeaters()
+        .then(reply => ws.send(JSON.stringify(reply)))
+        .catch(error => log.error('getHeaters promise rejected', error))
+      break
+    
 
-			case 'loadHistory' :
-				if (!('data' in message)) {
-					log.error('loadHistory: syntax error');
-					return;
-				}
-				teleinfo.getHistory(message.data)
-				.then(reply => ws.send(JSON.stringify(reply)))
-				.catch(err => log.error('getHistory promise rejected', err));
-				break;
+    case 'loadHistory' :
+      if (!('data' in message)) {
+        log.error('loadHistory: syntax error')
+        return
+      }
+      teleinfo.getHistory(message.data)
+        .then(reply => ws.send(JSON.stringify(reply)))
+        .catch(error => log.error('getHistory promise rejected', error))
+      break
+    
 
-		}
-	});
+    }
+  })
 
-	ws.on('close', () => {
-		teleinfo.removeListener('notification', broadcaster);
-		--nbSockets;
-		log.info('websocket disconnected, total = ' + nbSockets);
-	});
+  ws.on('close', () => {
+    teleinfo.removeEventListener('notification', broadcaster)
+    --nbSockets
+    log.info('websocket disconnected, total = ' + nbSockets)
+  })
 
-});
+})
