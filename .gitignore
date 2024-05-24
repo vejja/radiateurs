@@ -5,3 +5,4 @@
 **/platforms/
 **/plugins/
 server/radiateurs.db
+.DS_Store

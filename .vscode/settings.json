@@ -1,5 +1,0 @@
-{
-  "deno.lint": false,
-  "eslint.experimental.useFlatConfig": true,
-  "js/ts.implicitProjectConfig.checkJs": true
-}

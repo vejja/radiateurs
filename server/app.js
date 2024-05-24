@@ -1,13 +1,12 @@
 import { WebSocketServer } from 'ws'
-import teleinfo from './monitor.js'
-import log from './logger.js'
+import teleinfo from './services/teleinfo.js'
+import log from './services/logger.js'
 	
 let nbSockets = 0
 
 const options = {
   port: 3000,
 }
-
 
 const wss = new WebSocketServer(options, () => {log.info('****************** SERVER STARTED ********************')})
 
