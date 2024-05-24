@@ -42,8 +42,9 @@ Instructions pour installer le serveur radiateurs
 
 ## Installation Raspberry Pi ##
 
-* Download Raspberry Pi Raspbian Jessie image
-* Install
+* Download Raspberry Pi Imager
+* Install on SD card with custom options (set Wifi password & SSH via public key)
+* Edit .sh file and add `key_mgmt=WPA-PSK` to the wpa_supplicant section under `network` 
 
 ### sudo raspi-config
 * Expand Filesystem
@@ -56,6 +57,7 @@ Instructions pour installer le serveur radiateurs
 * Disable shell on serial connection
 * Boot into CLI
 * Wait for Network at Boot
+* Decrease GPU memory to min (16MB)
 * sudo reboot
 
 ### Wifi configuration
@@ -64,75 +66,98 @@ sudo nano /etc/wpa-supplicant/wpa-supplicant.conf
 * network={
         ssid="****"
         psk="****"
-        key_mgmt=WPA-PSK
+        key_mgmt=WPA-PSK // This line must be manually added after rpi-imager
 }
-sudo timedatectl set-ntp true
+```
+
+### Increase swap size to 1GB
+```
+sudo dphys-swapfile swapoff
+sudo nano /etc/dphys-swapfile
+>>> CONF_SWAPSIZE=1024
+sudo dphys-swapfile setup
+sudo dphys-swapfile swapon
+sudo reboot
 ```
 
 ### Install major utilities
 ```
-sudo apt-get install git nginx sqlite3 ddclient
+sudo apt install git sqlite3 i2ctools
 ```
 
-### Install LetsEncrypt
+### Install ddclient
 ```
-git clone https://github.com/letsencrypt/letsencrypt
-cd letsencrypt
-./letsencrypt-auto --help
+sudo apt install ddclient
 ```
+Check the /etc/ddclient.conf file after setup
 
-Check that `letsencrypt`is executable from the command line
+### Install nginx
+```
+sudo apt install nginx
+```
+Drop the default configuration files
+- /etc/nginx/nginx.conf
+- /etc/nginx/sites-available/erquy.vejja.fr
 
-If not: `sudo ln -s ~/.local/share/letsencrypt/bin/letsencrypt /usr/local/bin/letsencrypt`
+### Enable the basic auth module
+```
+sudo apt install apache2-utils
+sudo htpasswd -c /etc/apache2/.htpasswd user1
+```
+Set password for HTTP basic auth on website
+
+### Install Certbot
+```
+sudo apt install certbot python3-certbot-nginx
+sudo certbot --nginx -d erquy.vejja.fr
+```
+certbot will automatically modify the Nginx default config file 
+
+### Install fail2ban
+```
+sudo apt install fail2ban
+```
 
 ### Download node.js ARMv6 binaries from nodejs.org
+
+Go to nodejs.org
+Find the unofficial builds for ARMv6l: https://unofficial-builds.nodejs.org/
+https://unofficial-builds.nodejs.org/download/release/v20.13.1/node-v20.13.1-linux-armv6l.tar.xz
+
+
 ```
-npm install -g bower
-npm install -g forever
-npm install -g nodemon
-npm install -g node-inspector
-```
-
-Check that node utilities are executable from the command line
-
-If not: `sudo ln -s /opt/node/bin/<executable> /usr/local/bin/<executable>`
-
-
-### Symlink config files
-| Config file  | Repo Script | Description |
-|--------------|-------------|-------------|
-| /etc/ddclient.conf | ddclient.conf | *ddclient* keeps the dyndns record up to date with the IP address of the Livebox |
-| /etc/nginx/nginx.conf | nginx.conf | websocket upstream definition |
-| /etc/nginx/sites-available/default | default | SSL, Basic auth, websocket proxy forward |
-| /etc/rc.local | rc.local | Boot script that launches the serial UART interface & the forever daemon that keeps node.js live in spite of crashes |
-
-### Launch letsencrypt
-```
-cd radiateurs/server/scripts
-./setup-certificate.sh
+tar -xvf node-v20.13.1-linux-armv6l.tar.xz
+cd node-v20.13.1-linux-armv6l
+sudo cp -R * /usr/local/
+node --version
 ```
 
-Then `sudo crontab -e` and add the line `30 3 * * * /home/pi/radiateurs/server/scripts/renew-certificate.sh >> /var/log/letsencrypt/cronjob.log`
+### Install SystemD unit
+Drop /etc/systemd/system file
+```
+sudo systemctl daemon-reload
+sudo systemctl enable radiateurs
+```
 
 ### Check ttyAMA0 and i2c
 
 ```
 cat /dev/ttyAMA0
-gpio i2cd
+sudo i2cdetect -y 1
 ```
 
 If needed : 
 
 `sudo nano /boot/cmdline.txt`
 
-* Supprimer console=ttyAMA0,115200 kgdboc=ttyAMA0,115200
+* #Supprimer console=ttyAMA0,115200 kgdboc=ttyAMA0,115200
 
 `sudo nano /etc/modules`
 
-* i2c-bcm2708 
+* #i2c-bcm2708 
 * i2c-dev
 
 `sudo nano /boot/config.txt`
 
-* dtparam=i2c=on
+* #dtparam=i2c=on
 * dtparam=i2c_arm=on
